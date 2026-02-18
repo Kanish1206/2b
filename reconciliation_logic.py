@@ -29,7 +29,7 @@ def process_reco(gst, pur, doc_threshold=85, tax_tolerance=10, gstin_mismatch_to
     gst_agg = (
         gst.groupby(["Supplier GSTIN", "doc_norm"], as_index=False)
         .agg({
-            "Document Number": "first",
+            #"Document Number": "first",
             "Supplier Name": "first",
             "Document Date": "first",
             "IGST Amount": "sum",
