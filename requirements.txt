@@ -8,7 +8,7 @@ lshkrepresentatives
 #Data Manipulation
 pandas>=2.0.0
 numpy>=1.24.0
-
+plotly.express
 # Fuzzy Matching
 rapidfuzz>=3.0.0
 
