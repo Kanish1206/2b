@@ -36,17 +36,17 @@ if gst_file and pur_file:
             c2.metric("Matched", matched)
             c3.metric("Unmatched", total - matched)
 
-            pie_df = result_df["Match_Status"].value_counts().reset_index()
-            pie_df.columns = ["Status", "Count"]
+            #pie_df = result_df["Match_Status"].value_counts().reset_index()
+            #pie_df.columns = ["Status", "Count"]
 
-            fig = px.pie(
-                pie_df,
-                names="Status",
-                values="Count",
-                hole=0.5,
-            )
+            #fig = px.pie(
+                #pie_df,
+                #names="Status",
+                #values="Count",
+                #hole=0.5,
+            #)
 
-            st.plotly_chart(fig, use_container_width=True)
+            #st.plotly_chart(fig, use_container_width=True)
 
             st.subheader("Detailed Output")
             st.dataframe(result_df, use_container_width=True)
