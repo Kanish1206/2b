@@ -64,7 +64,7 @@ def process_reco(
     pur_agg = pur.groupby(["Supplier GSTIN", "doc_norm"], as_index=False).agg({
         "Reference Document No.": "first",
         "Vendor/Customer Name": "first",
-        "Taxable Amount":"first",
+        "Taxable Amount":"sum",
         "Document Date": "first",
         "Vendor/Customer Code":"first",
         "IGST Amount": "sum",
