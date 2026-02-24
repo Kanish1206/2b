@@ -49,7 +49,7 @@ def process_reco(
         "IGST Amount",
         "CGST Amount",
         "SGST Amount",
-        "Invoice Value",
+        "Taxable Value",
     ]
 
     pur_required = [
@@ -59,7 +59,7 @@ def process_reco(
         "IGST Amount",
         "CGST Amount",
         "SGST Amount",
-        "Invoice Value",
+        "Taxable Amount",
     ]
 
     validate_columns(gst, gst_required, "2B File")
@@ -88,7 +88,7 @@ def process_reco(
             "IGST Amount": "sum",
             "CGST Amount": "sum",
             "SGST Amount": "sum",
-            "Invoice Value": "sum",
+            "Taxable Value": "sum",
         })
     )
 
@@ -100,7 +100,7 @@ def process_reco(
             "IGST Amount": "sum",
             "CGST Amount": "sum",
             "SGST Amount": "sum",
-            "Invoice Value": "sum",
+            "Taxable Amount": "sum",
         })
     )
 
@@ -124,8 +124,8 @@ def process_reco(
 
     # Fill numeric nulls with 0
     numeric_cols = [
-        "IGST Amount_2B", "CGST Amount_2B", "SGST Amount_2B", "Invoice Value_2B",
-        "IGST Amount_PUR", "CGST Amount_PUR", "SGST Amount_PUR", "Invoice Value_PUR",
+        "IGST Amount_2B", "CGST Amount_2B", "SGST Amount_2B", "Taxable Value_2B",
+        "IGST Amount_PUR", "CGST Amount_PUR", "SGST Amount_PUR", "Taxable Value_PUR",
     ]
 
     for col in numeric_cols:
@@ -138,7 +138,7 @@ def process_reco(
     merged["IGST Diff"] = merged["IGST Amount_PUR"] - merged["IGST Amount_2B"]
     merged["CGST Diff"] = merged["CGST Amount_PUR"] - merged["CGST Amount_2B"]
     merged["SGST Diff"] = merged["SGST Amount_PUR"] - merged["SGST Amount_2B"]
-    merged["Invoice Diff"] = merged["Invoice Value_PUR"] - merged["Invoice Value_2B"]
+    merged["Taxable Diff"] = merged["Taxable Value_PUR"] - merged["Taxable Amount_2B"]
 
     both_mask = merged["_merge"] == "both"
 
@@ -146,7 +146,7 @@ def process_reco(
         (merged["IGST Diff"].abs() <= tax_tolerance)
         & (merged["CGST Diff"].abs() <= tax_tolerance)
         & (merged["SGST Diff"].abs() <= tax_tolerance)
-        & (merged["Invoice Diff"].abs() <= tax_tolerance)
+        & (merged["Taxable Diff"].abs() <= tax_tolerance)
     )
 
     merged.loc[both_mask & tax_condition, "Match_Status"] = "Exact Match"
@@ -175,11 +175,11 @@ def process_reco(
         for left_idx in left_rows.index:
 
             left_doc = merged.at[left_idx, "doc_norm"]
-            left_invoice = merged.at[left_idx, "Invoice Value_2B"]
+            left_invoice = merged.at[left_idx, "Taxable Value_2B"]
 
             # Invoice blocking
             candidates = right_rows[
-                right_rows["Invoice Value_PUR"].sub(left_invoice).abs()
+                right_rows["Taxable Value_PUR"].sub(left_invoice).abs()
                 <= tax_tolerance
             ]
 
@@ -207,14 +207,14 @@ def process_reco(
                     "IGST Amount_PUR",
                     "CGST Amount_PUR",
                     "SGST Amount_PUR",
-                    "Invoice Value_PUR"
+                    "Taxable Value_PUR"
                 ]] = merged.loc[right_idx, [
                     "Reference Document No._PUR",
                     "Vendor/Customer Name_PUR",
                     "IGST Amount_PUR",
                     "CGST Amount_PUR",
                     "SGST Amount_PUR",
-                    "Invoice Value_PUR"
+                    "Taxable Amount_PUR"
                 ]].values
 
                 # Recalculate diffs
@@ -251,13 +251,13 @@ def process_reco(
     for left_idx in open_2b.index:
 
         left_doc = merged.at[left_idx, "doc_norm"]
-        left_val = merged.at[left_idx, "Invoice Value_2B"]
+        left_val = merged.at[left_idx, "Taxable Value_2B"]
 
         possible = open_books[open_books["doc_norm"] == left_doc]
 
         for right_idx in possible.index:
 
-            right_val = merged.at[right_idx, "Invoice Value_PUR"]
+            right_val = merged.at[right_idx, "Taxable Amount_PUR"]
 
             if abs(left_val - right_val) <= gstin_mismatch_tolerance:
 
