@@ -77,7 +77,7 @@ def process_reco(
     )
 
     # -------------------------------------------------
-    # AGGREGATION
+    # AGGREGATE
     # -------------------------------------------------
     gst_agg = (
         gst.groupby(["Supplier GSTIN", "doc_norm"], as_index=False)
@@ -118,7 +118,7 @@ def process_reco(
     merged["Match_Status"] = None
     merged["Fuzzy Score"] = 0.0
 
-    # Fill NaN numeric columns with 0 for safe math
+    # Fill numeric nulls with 0
     numeric_cols = [
         "IGST Amount_2B", "CGST Amount_2B", "SGST Amount_2B", "Invoice Value_2B",
         "IGST Amount_PUR", "CGST Amount_PUR", "SGST Amount_PUR", "Invoice Value_PUR",
@@ -151,70 +151,81 @@ def process_reco(
     merged.loc[merged["_merge"] == "right_only", "Match_Status"] = "Open in Books"
 
     # -------------------------------------------------
-    # FUZZY MATCHING
+    # FUZZY MATCHING (CLEAN VERSION)
     # -------------------------------------------------
-    if match:
-    _, score, right_idx = match
+    for gstin in merged["Supplier GSTIN"].dropna().unique():
 
-    # Copy purchase fields directly from matched right row
-    merged.at[left_idx, "Reference Document No._PUR"] = merged.at[right_idx, "Reference Document No._PUR"]
-    merged.at[left_idx, "Vendor/Customer Name_PUR"] = merged.at[right_idx, "Vendor/Customer Name_PUR"]
-    merged.at[left_idx, "IGST Amount_PUR"] = merged.at[right_idx, "IGST Amount_PUR"]
-    merged.at[left_idx, "CGST Amount_PUR"] = merged.at[right_idx, "CGST Amount_PUR"]
-    merged.at[left_idx, "SGST Amount_PUR"] = merged.at[right_idx, "SGST Amount_PUR"]
-    merged.at[left_idx, "Invoice Value_PUR"] = merged.at[right_idx, "Invoice Value_PUR"]
+        left_rows = merged[
+            (merged["Supplier GSTIN"] == gstin)
+            & (merged["Match_Status"] == "Open in 2B")
+        ]
 
-    # Recalculate diffs
-    merged.at[left_idx, "IGST Diff"] = (
-        merged.at[left_idx, "IGST Amount_PUR"]
-        - merged.at[left_idx, "IGST Amount_2B"]
-    )
+        right_rows = merged[
+            (merged["Supplier GSTIN"] == gstin)
+            & (merged["Match_Status"] == "Open in Books")
+        ]
 
-    merged.at[left_idx, "CGST Diff"] = (
-        merged.at[left_idx, "CGST Amount_PUR"]
-        - merged.at[left_idx, "CGST Amount_2B"]
-    )
+        if right_rows.empty:
+            continue
 
-    merged.at[left_idx, "SGST Diff"] = (
-        merged.at[left_idx, "SGST Amount_PUR"]
-        - merged.at[left_idx, "SGST Amount_2B"]
-    )
+        for left_idx in left_rows.index:
 
-    merged.at[left_idx, "Invoice Diff"] = (
-        merged.at[left_idx, "Invoice Value_PUR"]
-        - merged.at[left_idx, "Invoice Value_2B"]
-    )
+            left_doc = merged.at[left_idx, "doc_norm"]
+            left_invoice = merged.at[left_idx, "Invoice Value_2B"]
 
-    merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
-    merged.at[left_idx, "Fuzzy Score"] = score
+            # Invoice blocking
+            candidates = right_rows[
+                right_rows["Invoice Value_PUR"].sub(left_invoice).abs()
+                <= tax_tolerance
+            ]
 
-    # Mark right row consumed
-    merged.at[right_idx, "Match_Status"] = "Fuzzy Consumed"
-    
-                # Assign purchase fields
-                merged.at[left_idx, "Reference Document No._PUR"] = pur_row["Reference Document No."]
-                merged.at[left_idx, "Vendor/Customer Name_PUR"] = pur_row["Vendor/Customer Name"]
-                merged.at[left_idx, "IGST Amount_PUR"] = pur_row["IGST Amount"]
-                merged.at[left_idx, "CGST Amount_PUR"] = pur_row["CGST Amount"]
-                merged.at[left_idx, "SGST Amount_PUR"] = pur_row["SGST Amount"]
-                merged.at[left_idx, "Invoice Value_PUR"] = pur_row["Invoice Value"]
+            if candidates.empty:
+                continue
 
-                # Recalculate diffs explicitly
+            candidate_dict = dict(
+                zip(candidates.index, candidates["doc_norm"])
+            )
+
+            match = process.extractOne(
+                left_doc,
+                candidate_dict,
+                scorer=fuzz.ratio,
+                score_cutoff=doc_threshold,
+            )
+
+            if match:
+                _, score, right_idx = match
+
+                # 🔥 Directly copy purchase fields from matched row
+                merged.loc[left_idx, [
+                    "Reference Document No._PUR",
+                    "Vendor/Customer Name_PUR",
+                    "IGST Amount_PUR",
+                    "CGST Amount_PUR",
+                    "SGST Amount_PUR",
+                    "Invoice Value_PUR"
+                ]] = merged.loc[right_idx, [
+                    "Reference Document No._PUR",
+                    "Vendor/Customer Name_PUR",
+                    "IGST Amount_PUR",
+                    "CGST Amount_PUR",
+                    "SGST Amount_PUR",
+                    "Invoice Value_PUR"
+                ]].values
+
+                # Recalculate diffs
                 merged.at[left_idx, "IGST Diff"] = (
                     merged.at[left_idx, "IGST Amount_PUR"]
                     - merged.at[left_idx, "IGST Amount_2B"]
                 )
-
                 merged.at[left_idx, "CGST Diff"] = (
                     merged.at[left_idx, "CGST Amount_PUR"]
                     - merged.at[left_idx, "CGST Amount_2B"]
                 )
-
                 merged.at[left_idx, "SGST Diff"] = (
                     merged.at[left_idx, "SGST Amount_PUR"]
                     - merged.at[left_idx, "SGST Amount_2B"]
                 )
-
                 merged.at[left_idx, "Invoice Diff"] = (
                     merged.at[left_idx, "Invoice Value_PUR"]
                     - merged.at[left_idx, "Invoice Value_2B"]
