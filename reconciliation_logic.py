@@ -68,7 +68,7 @@ def process_reco(
     validate_columns(pur, pur_required, "Purchase File")
 
     # -------------------------------------------------
-    # NORMALIZE DOC
+    # NORMALIZE DOCUMENT
     # -------------------------------------------------
     gst["doc_norm"] = normalize_doc(gst["Document Number"])
     pur["doc_norm"] = normalize_doc(pur["Reference Document No."])
@@ -78,8 +78,17 @@ def process_reco(
         inplace=True,
     )
 
+    # Ensure numeric
+    numeric_cols = [
+        "IGST Amount", "CGST Amount", "SGST Amount", "Invoice Value"
+    ]
+
+    for col in numeric_cols:
+        gst[col] = pd.to_numeric(gst[col], errors="coerce").fillna(0)
+        pur[col] = pd.to_numeric(pur[col], errors="coerce").fillna(0)
+
     # -------------------------------------------------
-    # AGGREGATE (REMOVED FI DOCUMENT)
+    # AGGREGATE
     # -------------------------------------------------
     gst_agg = (
         gst.groupby(["Supplier GSTIN", "doc_norm"], as_index=False)
@@ -120,14 +129,18 @@ def process_reco(
     merged["Match_Status"] = None
     merged["Fuzzy Score"] = 0.0
 
+    # Fill numeric NaN after merge
+    for col in merged.columns:
+        if "Amount" in col or "Value" in col:
+            merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(0)
+
     # -------------------------------------------------
-    # DIFF CALCULATION (SAFE)
+    # DIFFERENCE CALCULATION
     # -------------------------------------------------
-    for col in ["IGST", "CGST", "SGST", "Invoice"]:
-        merged[f"{col} Diff"] = (
-            merged.get(f"{col} Amount_PUR", merged.get(f"{col} Value_PUR", 0)).fillna(0)
-            - merged.get(f"{col} Amount_2B", merged.get(f"{col} Value_2B", 0)).fillna(0)
-        )
+    merged["IGST Diff"] = merged["IGST Amount_PUR"] - merged["IGST Amount_2B"]
+    merged["CGST Diff"] = merged["CGST Amount_PUR"] - merged["CGST Amount_2B"]
+    merged["SGST Diff"] = merged["SGST Amount_PUR"] - merged["SGST Amount_2B"]
+    merged["Invoice Diff"] = merged["Invoice Value_PUR"] - merged["Invoice Value_2B"]
 
     both_mask = merged["_merge"] == "both"
 
@@ -139,29 +152,16 @@ def process_reco(
     )
 
     merged.loc[both_mask & tax_condition, "Match_Status"] = "Exact Match"
-
-    merged.loc[
-        both_mask & ~tax_condition,
-        "Match_Status"
-    ] = "Exact Doc - Value Mismatch"
-
-    merged.loc[
-        merged["_merge"] == "left_only",
-        "Match_Status"
-    ] = "Open in 2B"
-
-    merged.loc[
-        merged["_merge"] == "right_only",
-        "Match_Status"
-    ] = "Open in Books"
+    merged.loc[both_mask & ~tax_condition, "Match_Status"] = "Exact Doc - Value Mismatch"
+    merged.loc[merged["_merge"] == "left_only", "Match_Status"] = "Open in 2B"
+    merged.loc[merged["_merge"] == "right_only", "Match_Status"] = "Open in Books"
 
     # -------------------------------------------------
-    # OPTIMIZED FUZZY MATCHING
+    # FUZZY MATCHING (FIXED TRANSFER)
     # -------------------------------------------------
     open_2b = merged[merged["Match_Status"] == "Open in 2B"].copy()
     open_books = merged[merged["Match_Status"] == "Open in Books"].copy()
 
-    # Blocking: GSTIN + Invoice Value range
     for gstin in open_2b["Supplier GSTIN"].dropna().unique():
 
         left_grp = open_2b[open_2b["Supplier GSTIN"] == gstin]
@@ -170,14 +170,11 @@ def process_reco(
         if right_grp.empty:
             continue
 
-        right_docs = dict(zip(right_grp.index, right_grp["doc_norm"]))
-
         for left_idx in left_grp.index:
 
             left_doc = merged.at[left_idx, "doc_norm"]
-            left_invoice = merged.at[left_idx, "Invoice Value_2B"] or 0
+            left_invoice = merged.at[left_idx, "Invoice Value_2B"]
 
-            # Invoice range blocking
             candidate_grp = right_grp[
                 right_grp["Invoice Value_PUR"].sub(left_invoice).abs()
                 <= tax_tolerance
@@ -200,19 +197,23 @@ def process_reco(
             if match:
                 _, score, right_idx = match
 
+                # ✅ FIXED ROW TRANSFER USING LOC
+                pur_columns = [
+                    col for col in merged.columns if col.endswith("_PUR")
+                ]
+
+                merged.loc[left_idx, pur_columns] = \
+                    merged.loc[right_idx, pur_columns].values
+
                 merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
                 merged.at[left_idx, "Fuzzy Score"] = score
-
-                for col in merged.columns:
-                    if col.endswith("_PUR"):
-                        merged.at[left_idx, col] = merged.at[right_idx, col]
 
                 merged.at[right_idx, "Match_Status"] = "Fuzzy Consumed"
 
     merged = merged[merged["Match_Status"] != "Fuzzy Consumed"]
 
     # -------------------------------------------------
-    # GSTIN MISMATCH CHECK (FIXED NAN)
+    # GSTIN MISMATCH CHECK
     # -------------------------------------------------
     open_2b = merged[merged["Match_Status"] == "Open in 2B"]
     open_books = merged[merged["Match_Status"] == "Open in Books"]
@@ -221,17 +222,14 @@ def process_reco(
 
         left_doc = merged.at[left_idx, "doc_norm"]
         left_val = merged.at[left_idx, "Invoice Value_2B"]
-        left_val = 0 if pd.isna(left_val) else left_val
 
         possible = open_books[open_books["doc_norm"] == left_doc]
 
         for right_idx in possible.index:
 
             right_val = merged.at[right_idx, "Invoice Value_PUR"]
-            right_val = 0 if pd.isna(right_val) else right_val
 
             if abs(left_val - right_val) <= gstin_mismatch_tolerance:
-
                 merged.at[left_idx, "Match_Status"] = "GSTIN Mismatch"
                 merged.at[right_idx, "Match_Status"] = "GSTIN Mismatch"
 
