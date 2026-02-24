@@ -66,15 +66,12 @@ def process_reco(
     validate_columns(pur, pur_required, "Purchase File")
 
     # -------------------------------------------------
-    # NORMALIZE
+    # NORMALIZE DOCUMENT NUMBER
     # -------------------------------------------------
     gst["doc_norm"] = normalize_doc(gst["Document Number"])
     pur["doc_norm"] = normalize_doc(pur["Reference Document No."])
 
-    pur.rename(
-        columns={"GSTIN Of Vendor/Customer": "Supplier GSTIN"},
-        inplace=True,
-    )
+    pur.rename(columns={"GSTIN Of Vendor/Customer": "Supplier GSTIN"}, inplace=True)
 
     # -------------------------------------------------
     # AGGREGATION
@@ -115,17 +112,28 @@ def process_reco(
         indicator=True,
     )
 
+    # Ensure numeric columns are clean
+    numeric_cols = [
+        "IGST Amount_2B", "CGST Amount_2B", "SGST Amount_2B", "Invoice Value_2B",
+        "IGST Amount_PUR", "CGST Amount_PUR", "SGST Amount_PUR", "Invoice Value_PUR",
+    ]
+
+    for col in numeric_cols:
+        if col in merged.columns:
+            merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(0)
+        else:
+            merged[col] = 0
+
     merged["Match_Status"] = None
     merged["Fuzzy Score"] = 0.0
 
     # -------------------------------------------------
-    # DIFF CALCULATION
+    # DIFF CALCULATION (FIXED)
     # -------------------------------------------------
-    for col in ["IGST", "CGST", "SGST", "Invoice"]:
-        merged[f"{col} Diff"] = (
-            merged.get(f"{col} Amount_PUR", merged.get(f"{col} Value_PUR", 0)).fillna(0)
-            - merged.get(f"{col} Amount_2B", merged.get(f"{col} Value_2B", 0)).fillna(0)
-        )
+    merged["IGST Diff"] = merged["IGST Amount_PUR"] - merged["IGST Amount_2B"]
+    merged["CGST Diff"] = merged["CGST Amount_PUR"] - merged["CGST Amount_2B"]
+    merged["SGST Diff"] = merged["SGST Amount_PUR"] - merged["SGST Amount_2B"]
+    merged["Invoice Diff"] = merged["Invoice Value_PUR"] - merged["Invoice Value_2B"]
 
     both_mask = merged["_merge"] == "both"
 
@@ -142,7 +150,7 @@ def process_reco(
     merged.loc[merged["_merge"] == "right_only", "Match_Status"] = "Open in Books"
 
     # -------------------------------------------------
-    # FUZZY MATCHING (PRODUCTION SAFE VERSION)
+    # FUZZY MATCHING
     # -------------------------------------------------
     open_2b = merged[merged["Match_Status"] == "Open in 2B"].copy()
     open_books = merged[merged["Match_Status"] == "Open in Books"].copy()
@@ -159,19 +167,15 @@ def process_reco(
 
             left_doc = merged.at[left_idx, "doc_norm"]
             left_invoice = merged.at[left_idx, "Invoice Value_2B"]
-            left_invoice = 0 if pd.isna(left_invoice) else left_invoice
 
             candidate_grp = right_grp[
-                right_grp["Invoice Value_PUR"].sub(left_invoice).abs()
-                <= tax_tolerance
+                (right_grp["Invoice Value_PUR"] - left_invoice).abs() <= tax_tolerance
             ]
 
             if candidate_grp.empty:
                 continue
 
-            candidate_dict = dict(
-                zip(candidate_grp.index, candidate_grp["doc_norm"])
-            )
+            candidate_dict = dict(zip(candidate_grp.index, candidate_grp["doc_norm"]))
 
             match = process.extractOne(
                 left_doc,
@@ -183,31 +187,27 @@ def process_reco(
             if match:
                 _, score, right_idx = match
 
-                # 🔥 Get clean purchase row from pur_agg
-                pur_row = pur_agg.loc[
-                    (pur_agg["Supplier GSTIN"] == gstin)
-                    & (pur_agg["doc_norm"] == candidate_dict[right_idx])
-                ].iloc[0]
-
-                # Assign purchase values properly
-                merged.at[left_idx, "Reference Document No._PUR"] = pur_row["Reference Document No."]
-                merged.at[left_idx, "Vendor/Customer Name_PUR"] = pur_row["Vendor/Customer Name"]
-                merged.at[left_idx, "IGST Amount_PUR"] = pur_row["IGST Amount"]
-                merged.at[left_idx, "CGST Amount_PUR"] = pur_row["CGST Amount"]
-                merged.at[left_idx, "SGST Amount_PUR"] = pur_row["SGST Amount"]
-                merged.at[left_idx, "Invoice Value_PUR"] = pur_row["Invoice Value"]
-
                 merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
                 merged.at[left_idx, "Fuzzy Score"] = score
+                merged.at[right_idx, "Match_Status"] = "Fuzzy Consumed"
 
                 # Recalculate diffs
-                for col in ["IGST", "CGST", "SGST", "Invoice"]:
-                    merged.at[left_idx, f"{col} Diff"] = (
-                        (merged.at[left_idx, f"{col} Amount_PUR"] or 0)
-                        - (merged.at[left_idx, f"{col} Amount_2B"] or 0)
-                    )
-
-                merged.at[right_idx, "Match_Status"] = "Fuzzy Consumed"
+                merged.at[left_idx, "IGST Diff"] = (
+                    merged.at[left_idx, "IGST Amount_PUR"]
+                    - merged.at[left_idx, "IGST Amount_2B"]
+                )
+                merged.at[left_idx, "CGST Diff"] = (
+                    merged.at[left_idx, "CGST Amount_PUR"]
+                    - merged.at[left_idx, "CGST Amount_2B"]
+                )
+                merged.at[left_idx, "SGST Diff"] = (
+                    merged.at[left_idx, "SGST Amount_PUR"]
+                    - merged.at[left_idx, "SGST Amount_2B"]
+                )
+                merged.at[left_idx, "Invoice Diff"] = (
+                    merged.at[left_idx, "Invoice Value_PUR"]
+                    - merged.at[left_idx, "Invoice Value_2B"]
+                )
 
     merged = merged[merged["Match_Status"] != "Fuzzy Consumed"]
 
@@ -221,14 +221,12 @@ def process_reco(
 
         left_doc = merged.at[left_idx, "doc_norm"]
         left_val = merged.at[left_idx, "Invoice Value_2B"]
-        left_val = 0 if pd.isna(left_val) else left_val
 
         possible = open_books[open_books["doc_norm"] == left_doc]
 
         for right_idx in possible.index:
 
             right_val = merged.at[right_idx, "Invoice Value_PUR"]
-            right_val = 0 if pd.isna(right_val) else right_val
 
             if abs(left_val - right_val) <= gstin_mismatch_tolerance:
 
