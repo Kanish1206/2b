@@ -30,13 +30,13 @@ def process_reco(
     pur = pur_df.copy()
 
     gst_required = [
-        "Supplier GSTIN", "Document Number", "Document Date",
+        "Supplier GSTIN", "Document Number", "Document Date","Return Period","Taxable Value"
         "Supplier Name", "IGST Amount", "CGST Amount",
         "SGST Amount", "Invoice Value",
     ]
 
     pur_required = [
-        "GSTIN Of Vendor/Customer", "Reference Document No.",
+        "GSTIN Of Vendor/Customer", "Reference Document No.","Taxable Amount","Document Date","Vendor/Customer Code"
         "Vendor/Customer Name", "IGST Amount",
         "CGST Amount", "SGST Amount", "Invoice Value",
     ]
@@ -51,17 +51,22 @@ def process_reco(
 
     gst_agg = gst.groupby(["Supplier GSTIN", "doc_norm"], as_index=False).agg({
         "Document Number": "first",
+        "Return Period":"first",
         "Supplier Name": "first",
         "Document Date": "first",
         "IGST Amount": "sum",
         "CGST Amount": "sum",
         "SGST Amount": "sum",
-        "Invoice Value": "sum",
+        "Taxable Value":"Sum",
+        "Invoice Value": "sum"
     })
 
     pur_agg = pur.groupby(["Supplier GSTIN", "doc_norm"], as_index=False).agg({
         "Reference Document No.": "first",
         "Vendor/Customer Name": "first",
+        "Taxable Amount":"first",
+        "Document Date": "first",
+        "Vendor/Customer Code":"first",
         "IGST Amount": "sum",
         "CGST Amount": "sum",
         "SGST Amount": "sum",
