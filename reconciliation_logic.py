@@ -36,7 +36,7 @@ def process_reco(
     ]
 
     pur_required = [
-        "GSTIN Of Vendor/Customer", "Reference Document No.","Taxable Amount","Document Date","Vendor/Customer Code"
+        "GSTIN Of Vendor/Customer", "Reference Document No.","Taxable Amount","Document Date","Vendor/Customer Code",
         "Vendor/Customer Name", "IGST Amount",
         "CGST Amount", "SGST Amount", "Invoice Value",
     ]
