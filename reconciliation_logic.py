@@ -55,6 +55,8 @@ def process_reco(
     pur_required = [
         "GSTIN Of Vendor/Customer",
         "Reference Document No.",
+        "FI Document Number",
+        "Tax Description",
         "Vendor/Customer Name",
         "IGST Amount",
         "CGST Amount",
@@ -96,6 +98,8 @@ def process_reco(
         pur.groupby(["Supplier GSTIN", "doc_norm"], as_index=False)
         .agg({
             "Reference Document No.": "first",
+            "FI Document Number" : "first",
+            "Tax Description" : "first",
             "Vendor/Customer Name": "first",
             "IGST Amount": "sum",
             "CGST Amount": "sum",
