@@ -142,7 +142,7 @@ def process_reco(
     merged["IGST Diff"] = merged["IGST Amount_PUR"] - merged["IGST Amount_2B"]
     merged["CGST Diff"] = merged["CGST Amount_PUR"] - merged["CGST Amount_2B"]
     merged["SGST Diff"] = merged["SGST Amount_PUR"] - merged["SGST Amount_2B"]
-    merged["Taxable Diff"] = merged["Taxable Value_PUR"] - merged["Taxable Amount_2B"]
+    merged["Taxable Diff"] = merged["Taxable Amount_PUR"] - merged["Taxable Value_2B"]
 
     both_mask = merged["_merge"] == "both"
 
