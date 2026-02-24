@@ -114,6 +114,10 @@ def process_reco(
         suffixes=("_2B", "_PUR"),
         indicator=True,
     )
+    merged.rename(columns={
+    "Reference Document No.": "Reference Document No._PUR",
+    "Vendor/Customer Name": "Vendor/Customer Name_PUR"
+}, inplace=True)
 
     merged["Match_Status"] = None
     merged["Fuzzy Score"] = 0.0
