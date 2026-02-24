@@ -160,58 +160,48 @@ def process_reco(
     # FUZZY MATCHING (FIXED TRANSFER)
     # -------------------------------------------------
     open_2b = merged[merged["Match_Status"] == "Open in 2B"].copy()
-    open_books = merged[merged["Match_Status"] == "Open in Books"].copy()
 
-    for gstin in open_2b["Supplier GSTIN"].dropna().unique():
+    for left_idx in open_2b.index:
 
-        left_grp = open_2b[open_2b["Supplier GSTIN"] == gstin]
-        right_grp = open_books[open_books["Supplier GSTIN"] == gstin]
+        left_doc = merged.at[left_idx, "doc_norm"]
+        left_gstin = merged.at[left_idx, "Supplier GSTIN"]
+        left_invoice = merged.at[left_idx, "Invoice Value_2B"]
 
-        if right_grp.empty:
+        # Filter from original pur_agg (NOT merged)
+        candidate_grp = pur_agg[
+            (pur_agg["Supplier GSTIN"] == left_gstin) &
+            (pur_agg["Invoice Value"].sub(left_invoice).abs() <= tax_tolerance)
+        ]
+
+        if candidate_grp.empty:
             continue
 
-        for left_idx in left_grp.index:
+        candidate_dict = dict(
+            zip(candidate_grp.index, candidate_grp["doc_norm"])
+        )
 
-            left_doc = merged.at[left_idx, "doc_norm"]
-            left_invoice = merged.at[left_idx, "Invoice Value_2B"]
+        match = process.extractOne(
+            left_doc,
+            candidate_dict,
+            scorer=fuzz.ratio,
+            score_cutoff=doc_threshold,
+        )
 
-            candidate_grp = right_grp[
-                right_grp["Invoice Value_PUR"].sub(left_invoice).abs()
-                <= tax_tolerance
-            ]
+        if match:
+            _, score, pur_idx = match
 
-            if candidate_grp.empty:
-                continue
+            # Pull directly from pur_agg
+            pur_row = pur_agg.loc[pur_idx]
 
-            candidate_dict = dict(
-                zip(candidate_grp.index, candidate_grp["doc_norm"])
-            )
+            merged.at[left_idx, "Reference Document No._PUR"] = pur_row["Reference Document No."]
+            merged.at[left_idx, "Vendor/Customer Name_PUR"] = pur_row["Vendor/Customer Name"]
+            merged.at[left_idx, "IGST Amount_PUR"] = pur_row["IGST Amount"]
+            merged.at[left_idx, "CGST Amount_PUR"] = pur_row["CGST Amount"]
+            merged.at[left_idx, "SGST Amount_PUR"] = pur_row["SGST Amount"]
+            merged.at[left_idx, "Invoice Value_PUR"] = pur_row["Invoice Value"]
 
-            match = process.extractOne(
-                left_doc,
-                candidate_dict,
-                scorer=fuzz.ratio,
-                score_cutoff=doc_threshold,
-            )
-
-            if match:
-                _, score, right_idx = match
-
-                # ✅ FIXED ROW TRANSFER USING LOC
-                pur_columns = [
-                    col for col in merged.columns if col.endswith("_PUR")
-                ]
-
-                merged.loc[left_idx, pur_columns] = \
-                    merged.loc[right_idx, pur_columns].values
-
-                merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
-                merged.at[left_idx, "Fuzzy Score"] = score
-
-                merged.at[right_idx, "Match_Status"] = "Fuzzy Consumed"
-
-    merged = merged[merged["Match_Status"] != "Fuzzy Consumed"]
-
+            merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
+            merged.at[left_idx, "Fuzzy Score"] = score
     # -------------------------------------------------
     # GSTIN MISMATCH CHECK
     # -------------------------------------------------
