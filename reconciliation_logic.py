@@ -129,7 +129,7 @@ def process_reco(
     # Fill numeric nulls with 0
     numeric_cols = [
         "IGST Amount_2B", "CGST Amount_2B", "SGST Amount_2B", "Taxable Value_2B",
-        "IGST Amount_PUR", "CGST Amount_PUR", "SGST Amount_PUR", "Taxable Value_PUR",
+        "IGST Amount_PUR", "CGST Amount_PUR", "SGST Amount_PUR", "Taxable Amount_PUR",
     ]
 
     for col in numeric_cols:
