@@ -30,7 +30,7 @@ def process_reco(
     pur = pur_df.copy()
 
     gst_required = [
-        "Supplier GSTIN", "Document Number", "Document Date","Return Period","Taxable Value"
+        "Supplier GSTIN", "Document Number", "Document Date","Return Period","Taxable Value",
         "Supplier Name", "IGST Amount", "CGST Amount",
         "SGST Amount", "Invoice Value",
     ]
