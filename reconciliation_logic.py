@@ -57,8 +57,8 @@ def process_reco(
         "IGST Amount": "sum",
         "CGST Amount": "sum",
         "SGST Amount": "sum",
-        "Taxable Value":"Sum",
-        "Invoice Value": "sum"
+        "Taxable Value":"sum",
+        "Invoice Value": "sum",
     })
 
     pur_agg = pur.groupby(["Supplier GSTIN", "doc_norm"], as_index=False).agg({
