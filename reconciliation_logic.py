@@ -68,19 +68,19 @@ def process_reco(
     validate_columns(pur, pur_required, "Purchase File")
 
     # -------------------------------------------------
-    # STANDARDIZE COLUMN TYPES
+    # NUMERIC STANDARDIZATION
     # -------------------------------------------------
-    numeric_cols_gst = ["IGST Amount", "CGST Amount", "SGST Amount", "Taxable Value"]
-    numeric_cols_pur = ["IGST Amount", "CGST Amount", "SGST Amount", "Taxable Amount"]
+    gst_numeric = ["IGST Amount", "CGST Amount", "SGST Amount", "Taxable Value"]
+    pur_numeric = ["IGST Amount", "CGST Amount", "SGST Amount", "Taxable Amount"]
 
-    for col in numeric_cols_gst:
+    for col in gst_numeric:
         gst[col] = pd.to_numeric(gst[col], errors="coerce").fillna(0)
 
-    for col in numeric_cols_pur:
+    for col in pur_numeric:
         pur[col] = pd.to_numeric(pur[col], errors="coerce").fillna(0)
 
     # -------------------------------------------------
-    # NORMALIZE DOCUMENT NUMBER
+    # NORMALIZE DOCUMENTS
     # -------------------------------------------------
     gst["doc_norm"] = normalize_doc(gst["Document Number"])
     pur["doc_norm"] = normalize_doc(pur["Reference Document No."])
@@ -88,7 +88,7 @@ def process_reco(
     pur.rename(columns={"GSTIN Of Vendor/Customer": "Supplier GSTIN"}, inplace=True)
 
     # -------------------------------------------------
-    # AGGREGATE
+    # AGGREGATION
     # -------------------------------------------------
     gst_agg = (
         gst.groupby(["Supplier GSTIN", "doc_norm"], as_index=False)
@@ -129,7 +129,7 @@ def process_reco(
     )
 
     # -------------------------------------------------
-    # FILL NUMERIC NULLS
+    # FILL NULL NUMERIC
     # -------------------------------------------------
     numeric_cols = [
         "IGST Amount_2B", "CGST Amount_2B", "SGST Amount_2B", "Taxable Value_2B",
@@ -141,7 +141,7 @@ def process_reco(
             merged[col] = merged[col].fillna(0)
 
     # -------------------------------------------------
-    # DIFF CALCULATION
+    # DIFFERENCE CALCULATION
     # -------------------------------------------------
     merged["IGST Diff"] = merged["IGST Amount_PUR"] - merged["IGST Amount_2B"]
     merged["CGST Diff"] = merged["CGST Amount_PUR"] - merged["CGST Amount_2B"]
@@ -166,7 +166,7 @@ def process_reco(
     merged.loc[merged["_merge"] == "right_only", "Match_Status"] = "Open in Books"
 
     # -------------------------------------------------
-    # FUZZY MATCHING
+    # FUZZY MATCHING (SAFE VERSION)
     # -------------------------------------------------
     for gstin in merged["Supplier GSTIN"].dropna().unique():
 
@@ -208,11 +208,18 @@ def process_reco(
             if match:
                 _, score, right_idx = match
 
-                # Copy numeric values
-                for col in numeric_cols:
+                # ONLY COPY PURCHASE SIDE
+                purchase_cols = [
+                    "IGST Amount_PUR",
+                    "CGST Amount_PUR",
+                    "SGST Amount_PUR",
+                    "Taxable Amount_PUR"
+                ]
+
+                for col in purchase_cols:
                     merged.at[left_idx, col] = merged.at[right_idx, col]
 
-                # Recalculate diffs
+                # Recalculate differences
                 merged.at[left_idx, "IGST Diff"] = (
                     merged.at[left_idx, "IGST Amount_PUR"]
                     - merged.at[left_idx, "IGST Amount_2B"]
@@ -230,12 +237,8 @@ def process_reco(
                     - merged.at[left_idx, "Taxable Value_2B"]
                 )
 
-                # Revalidate tolerance
                 if (
-                    abs(merged.at[left_idx, "IGST Diff"]) <= tax_tolerance
-                    and abs(merged.at[left_idx, "CGST Diff"]) <= tax_tolerance
-                    and abs(merged.at[left_idx, "SGST Diff"]) <= tax_tolerance
-                    and abs(merged.at[left_idx, "Taxable Diff"]) <= tax_tolerance
+                    abs(merged.at[left_idx, "Taxable Diff"]) <= tax_tolerance
                 ):
                     merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
                 else:
@@ -247,7 +250,7 @@ def process_reco(
     merged = merged[merged["Match_Status"] != "Fuzzy Consumed"]
 
     # -------------------------------------------------
-    # GSTIN MISMATCH CHECK
+    # GSTIN MISMATCH
     # -------------------------------------------------
     open_2b = merged[merged["Match_Status"] == "Open in 2B"]
     open_books = merged[merged["Match_Status"] == "Open in Books"]
