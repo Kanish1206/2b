@@ -114,57 +114,65 @@ def process_reco(
     merged.loc[merged["_merge"] == "right_only", "Match_Status"] = "Open in Books"
 
     # 🔥 FUZZY MATCHING FIXED
-    for gstin in merged["Supplier GSTIN"].dropna().unique():
+    # 🔥 FUZZY MATCHING FIXED (PROPER VERSION)
+for gstin in merged["Supplier GSTIN"].dropna().unique():
 
-        open_2b = merged[
-            (merged["Supplier GSTIN"] == gstin) &
-            (merged["Match_Status"] == "Open in 2B")
+    open_2b = merged[
+        (merged["Supplier GSTIN"] == gstin) &
+        (merged["Match_Status"] == "Open in 2B")
+    ]
+
+    open_books = merged[
+        (merged["Supplier GSTIN"] == gstin) &
+        (merged["Match_Status"] == "Open in Books")
+    ]
+
+    for left_idx in open_2b.index:
+
+        left_doc = merged.at[left_idx, "doc_norm"]
+        left_invoice = merged.at[left_idx, "Invoice Value_2B"]
+
+        candidates = open_books[
+            (open_books["Invoice Value_PUR"] - left_invoice).abs() <= tax_tolerance
         ]
 
-        open_books = merged[
-            (merged["Supplier GSTIN"] == gstin) &
-            (merged["Match_Status"] == "Open in Books")
-        ]
+        if candidates.empty:
+            continue
 
-        for left_idx in open_2b.index:
+        candidate_dict = dict(zip(candidates.index, candidates["doc_norm"]))
 
-            left_doc = merged.at[left_idx, "doc_norm"]
-            left_invoice = merged.at[left_idx, "Invoice Value_2B"]
+        match = process.extractOne(
+            left_doc,
+            candidate_dict,
+            scorer=fuzz.ratio,
+            score_cutoff=doc_threshold,
+        )
 
-            candidates = open_books[
-                (open_books["Invoice Value_PUR"] - left_invoice).abs() <= tax_tolerance
+        if match:
+            _, score, right_idx = match
+
+            # 🔥 COPY ALL PURCHASE SIDE COLUMNS DYNAMICALLY
+            pur_columns = [col for col in merged.columns if col.endswith("_PUR")]
+
+            for col in pur_columns:
+                merged.at[left_idx, col] = merged.at[right_idx, col]
+
+            # Also copy non-suffixed purchase columns
+            extra_cols = [
+                "Reference Document No.",
+                "Vendor/Customer Name",
+                "Vendor/Customer Code",
+                "Document Date_PUR",
             ]
 
-            if candidates.empty:
-                continue
+            for col in extra_cols:
+                if col in merged.columns:
+                    merged.at[left_idx, col] = merged.at[right_idx, col]
 
-            candidate_dict = dict(zip(candidates.index, candidates["doc_norm"]))
-
-            match = process.extractOne(
-                left_doc,
-                candidate_dict,
-                scorer=fuzz.ratio,
-                score_cutoff=doc_threshold,
-            )
-
-            if match:
-                _, score, right_idx = match
-
-                # Copy correct column names (NO _PUR suffix here)
-                merged.at[left_idx, "Reference Document No."] = merged.at[right_idx, "Reference Document No."]
-                merged.at[left_idx, "Vendor/Customer Name"] = merged.at[right_idx, "Vendor/Customer Name"]
-
-                merged.at[left_idx, "IGST Amount_PUR"] = merged.at[right_idx, "IGST Amount_PUR"]
-                merged.at[left_idx, "CGST Amount_PUR"] = merged.at[right_idx, "CGST Amount_PUR"]
-                merged.at[left_idx, "SGST Amount_PUR"] = merged.at[right_idx, "SGST Amount_PUR"]
-                merged.at[left_idx, "Invoice Value_PUR"] = merged.at[right_idx, "Invoice Value_PUR"]
-
-                merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
-                merged.at[left_idx, "Fuzzy Score"] = score
-                merged.at[right_idx, "Match_Status"] = "Fuzzy Consumed"
-
-    merged = merged[merged["Match_Status"] != "Fuzzy Consumed"]
-
+            merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
+            merged.at[left_idx, "Fuzzy Score"] = score
+            merged.at[right_idx, "Match_Status"] = "Fuzzy Consumed"
+            
     merged.drop(columns=["_merge"], inplace=True)
 
     return merged
