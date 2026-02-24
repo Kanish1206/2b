@@ -153,50 +153,44 @@ def process_reco(
     # -------------------------------------------------
     # FUZZY MATCHING
     # -------------------------------------------------
-    open_2b = merged[merged["Match_Status"] == "Open in 2B"].copy()
-    open_books = merged[merged["Match_Status"] == "Open in Books"].copy()
+    if match:
+    _, score, right_idx = match
 
-    for gstin in open_2b["Supplier GSTIN"].dropna().unique():
+    # Copy purchase fields directly from matched right row
+    merged.at[left_idx, "Reference Document No._PUR"] = merged.at[right_idx, "Reference Document No._PUR"]
+    merged.at[left_idx, "Vendor/Customer Name_PUR"] = merged.at[right_idx, "Vendor/Customer Name_PUR"]
+    merged.at[left_idx, "IGST Amount_PUR"] = merged.at[right_idx, "IGST Amount_PUR"]
+    merged.at[left_idx, "CGST Amount_PUR"] = merged.at[right_idx, "CGST Amount_PUR"]
+    merged.at[left_idx, "SGST Amount_PUR"] = merged.at[right_idx, "SGST Amount_PUR"]
+    merged.at[left_idx, "Invoice Value_PUR"] = merged.at[right_idx, "Invoice Value_PUR"]
 
-        left_grp = open_2b[open_2b["Supplier GSTIN"] == gstin]
-        right_grp = open_books[open_books["Supplier GSTIN"] == gstin]
+    # Recalculate diffs
+    merged.at[left_idx, "IGST Diff"] = (
+        merged.at[left_idx, "IGST Amount_PUR"]
+        - merged.at[left_idx, "IGST Amount_2B"]
+    )
 
-        if right_grp.empty:
-            continue
+    merged.at[left_idx, "CGST Diff"] = (
+        merged.at[left_idx, "CGST Amount_PUR"]
+        - merged.at[left_idx, "CGST Amount_2B"]
+    )
 
-        for left_idx in left_grp.index:
+    merged.at[left_idx, "SGST Diff"] = (
+        merged.at[left_idx, "SGST Amount_PUR"]
+        - merged.at[left_idx, "SGST Amount_2B"]
+    )
 
-            left_doc = merged.at[left_idx, "doc_norm"]
-            left_invoice = merged.at[left_idx, "Invoice Value_2B"]
+    merged.at[left_idx, "Invoice Diff"] = (
+        merged.at[left_idx, "Invoice Value_PUR"]
+        - merged.at[left_idx, "Invoice Value_2B"]
+    )
 
-            candidate_grp = right_grp[
-                right_grp["Invoice Value_PUR"].sub(left_invoice).abs()
-                <= tax_tolerance
-            ]
+    merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
+    merged.at[left_idx, "Fuzzy Score"] = score
 
-            if candidate_grp.empty:
-                continue
-
-            candidate_dict = dict(
-                zip(candidate_grp.index, candidate_grp["doc_norm"])
-            )
-
-            match = process.extractOne(
-                left_doc,
-                candidate_dict,
-                scorer=fuzz.ratio,
-                score_cutoff=doc_threshold,
-            )
-
-            if match:
-                _, score, right_idx = match
-
-                # Get clean purchase row
-                pur_row = pur_agg.loc[
-                    (pur_agg["Supplier GSTIN"] == gstin)
-                    & (pur_agg["doc_norm"] == candidate_dict[right_idx])
-                ].iloc[0]
-
+    # Mark right row consumed
+    merged.at[right_idx, "Match_Status"] = "Fuzzy Consumed"
+    
                 # Assign purchase fields
                 merged.at[left_idx, "Reference Document No._PUR"] = pur_row["Reference Document No."]
                 merged.at[left_idx, "Vendor/Customer Name_PUR"] = pur_row["Vendor/Customer Name"]
