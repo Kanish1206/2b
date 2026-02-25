@@ -184,6 +184,7 @@ def process_reco(
                     "Reference Document No.",
                     "Vendor/Customer Name",
                     "Vendor/Customer Code",
+                    "FI Document Number",
                     "Document Date_PUR",
                     "Taxable Amount",
                 ]
