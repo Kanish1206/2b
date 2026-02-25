@@ -165,8 +165,23 @@ def process_reco(gst_df, pur_df, doc_threshold=85, tax_tolerance=10):
             if match:
                 _, score, right_idx = match
 
-                for col in [c for c in merged.columns if c.endswith("_PUR")]:
+                # Copy all purchase side values
+                pur_columns = [col for col in merged.columns if col.endswith("_PUR")]
+                for col in pur_columns:
                     merged.at[left_idx, col] = merged.at[right_idx, col]
+
+                # 🔥 Explicitly copy non-suffixed purchase metadata
+                metadata_cols = [
+                    "Reference Document No.",
+                    "Vendor/Customer Name",
+                    "Vendor/Customer Code",
+                    "FI Document Number",
+                    "Taxable Amount"
+                ]
+
+                for col in metadata_cols:
+                    if col in merged.columns:
+                        merged.at[left_idx, col] = merged.at[right_idx, col]
 
                 merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
                 merged.at[left_idx, "Fuzzy Score"] = score
