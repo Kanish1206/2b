@@ -68,11 +68,12 @@ def process_reco(gst_df, pur_df, doc_threshold=85, tax_tolerance=10):
         "Invoice Value": "sum",
     })
 
-    pur_agg = pur.groupby(["Supplier GSTIN", "doc_norm","FI Document Number"], as_index=False).agg({
+    pur_agg = pur.groupby(["Supplier GSTIN", "doc_norm"], as_index=False).agg({
         "Reference Document No.": "first",
         "Vendor/Customer Name": "first",
         "Vendor/Customer Code": "first",
         "Document Date": "first",
+        "FI Document Number": "first",
         "Taxable Amount": "sum",
         "IGST Amount": "sum",
         "CGST Amount": "sum",
@@ -111,6 +112,7 @@ def process_reco(gst_df, pur_df, doc_threshold=85, tax_tolerance=10):
 
     merged["Match_Status"] = None
     merged["Fuzzy Score"] = 0.0
+    merged["GSTIN_Match_With"] = None
 
     both_mask = merged["_merge"] == "both"
 
@@ -164,15 +166,12 @@ def process_reco(gst_df, pur_df, doc_threshold=85, tax_tolerance=10):
             if match:
                 _, score, right_idx = match
 
-                # Copy all purchase side values
                 pur_columns = [col for col in merged.columns if col.endswith("_PUR")]
                 for col in pur_columns:
                     merged.at[left_idx, col] = merged.at[right_idx, col]
 
-                # 🔥 Explicitly copy non-suffixed purchase metadata
                 metadata_cols = [
                     "Reference Document No.",
-                    "GSTIN Of Vendor/Customer",
                     "Vendor/Customer Name",
                     "Vendor/Customer Code",
                     "FI Document Number",
@@ -189,9 +188,7 @@ def process_reco(gst_df, pur_df, doc_threshold=85, tax_tolerance=10):
 
     merged = merged[merged["Match_Status"] != "Fuzzy Consumed"]
 
-    # ---------------- GSTIN MISMATCH LOGIC ----------------
-    merged["GSTIN_Match_With"] = None
-
+    # ---------------- STRICT GSTIN MISMATCH ----------------
     open_rows = merged[
         merged["Match_Status"].isin(["Open in 2B", "Open in Books"])
     ]
