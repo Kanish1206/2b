@@ -180,6 +180,8 @@ def process_reco(gst_df, pur_df, doc_threshold=85, tax_tolerance=10, gstin_misma
                 # Optional: link them for reporting
                 merged.at[left_idx, "GSTIN_Match_With"] = merged.at[right_idx, "Supplier GSTIN"]
 
+    merged.at[left_idx, "GSTIN Of Vendor/Customer"] = merged.at[right_idx, "GSTIN Of Vendor/Customer"]
+
     merged.drop(columns=["_merge"], inplace=True)
 
     return merged
