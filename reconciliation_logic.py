@@ -200,6 +200,40 @@ def process_reco(
     # Remove consumed rows
     merged = merged[merged["Match_Status"] != "Fuzzy Consumed"]
 
+    merged["GSTIN_Match_With"] = None
+
+# Consider only rows still open
+open_rows = merged[
+    merged["Match_Status"].isin(["Open in 2B", "Open in Books"])
+]
+
+for idx in open_rows.index:
+
+    row = merged.loc[idx]
+
+    # Skip if both sides already present
+    if pd.notna(row["IGST Amount_2B"]) and pd.notna(row["IGST Amount_PUR"]):
+        continue
+
+    # Get side values
+    igst = row["IGST Amount_2B"] if row["IGST Amount_2B"] != 0 else row["IGST Amount_PUR"]
+    cgst = row["CGST Amount_2B"] if row["CGST Amount_2B"] != 0 else row["CGST Amount_PUR"]
+    sgst = row["SGST Amount_2B"] if row["SGST Amount_2B"] != 0 else row["SGST Amount_PUR"]
+
+    # Find match in other GSTIN
+    potential = merged[
+        (merged.index != idx) &
+        (merged["Supplier GSTIN"] != row["Supplier GSTIN"]) &
+        (merged["IGST Amount_2B"].eq(igst) | merged["IGST Amount_PUR"].eq(igst)) &
+        (merged["CGST Amount_2B"].eq(cgst) | merged["CGST Amount_PUR"].eq(cgst)) &
+        (merged["SGST Amount_2B"].eq(sgst) | merged["SGST Amount_PUR"].eq(sgst))
+    ]
+
+    if not potential.empty:
+        match_idx = potential.index[0]
+        merged.at[idx, "Match_Status"] = "GSTIN Mismatch"
+        merged.at[idx, "GSTIN_Match_With"] = merged.at[match_idx, "Supplier GSTIN"]
+
     merged.drop(columns=["_merge"], inplace=True)
 
     return merged
