@@ -172,6 +172,7 @@ def process_reco(gst_df, pur_df, doc_threshold=85, tax_tolerance=10):
                 # 🔥 Explicitly copy non-suffixed purchase metadata
                 metadata_cols = [
                     "Reference Document No.",
+                    "GSTIN Of Vendor/Customer",
                     "Vendor/Customer Name",
                     "Vendor/Customer Code",
                     "FI Document Number",
