@@ -24,7 +24,7 @@ def validate_columns(df, required_cols, df_name):
 # -------------------------------------------------
 # 3️⃣ MAIN RECON FUNCTION
 # -------------------------------------------------
-def process_reco(gst_df, pur_df, doc_threshold=85, tax_tolerance=10, gstin_mismatch_tolerance=20):
+def process_reco(gst_df, pur_df, doc_threshold=70, tax_tolerance=10, gstin_mismatch_tolerance=20):
 
     gst = gst_df.copy()
     pur = pur_df.copy()
