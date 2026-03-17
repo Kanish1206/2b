@@ -74,8 +74,7 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
     pur_agg = pur.groupby(["Supplier GSTIN", "doc_norm"], as_index=False).agg({
         "Reference Document No.": "first",
         "Vendor/Customer GSTIN": "first",  # <-- Added to aggregation
-        "Vendor/Customer Name": "first",
-        #"Vendor/Customer Code": "first",
+        "Vendor/Customer Name": "first",  #"Vendor/Customer Code": "first",
         "Document Date": "first",
         "FI Document Number": "first",
         "Taxable Amount": "sum",
