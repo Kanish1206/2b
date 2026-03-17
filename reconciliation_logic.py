@@ -40,10 +40,10 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
     pur_required = [
         "GSTIN Of Vendor/Customer", "Reference Document No.",
         "Taxable Amount", "Document Date", "FI Document Number",
-        "Vendor/Customer Code", "Vendor/Customer Name",
+        "Vendor/Customer Name",
         "IGST Amount", "CGST Amount",
         "SGST Amount", "Invoice Value",
-    ]
+    ] #"Vendor/Customer Code"
 
     validate_columns(gst, gst_required, "2B File")
     validate_columns(pur, pur_required, "Purchase File")
@@ -75,7 +75,7 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
         "Reference Document No.": "first",
         "Vendor/Customer GSTIN": "first",  # <-- Added to aggregation
         "Vendor/Customer Name": "first",
-        "Vendor/Customer Code": "first",
+        #"Vendor/Customer Code": "first",
         "Document Date": "first",
         "FI Document Number": "first",
         "Taxable Amount": "sum",
