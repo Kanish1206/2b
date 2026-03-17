@@ -150,7 +150,7 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
                 
                 # Copy all relevant Purchase data to the 2B row
                 pur_columns = [col for col in merged.columns if col.endswith("_PUR") or col in [
-                    "Reference Document No.", "Vendor/Customer Name", "Vendor/Customer Code", 
+                    "Reference Document No.", "Vendor/Customer Name", #"Vendor/Customer Code", 
                     "FI Document Number", "Taxable Amount", "Vendor/Customer GSTIN"
                 ]]
                 for col in pur_columns:
