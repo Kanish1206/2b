@@ -43,13 +43,12 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
         "Vendor/Customer Name",
         "IGST Amount", "CGST Amount",
         "SGST Amount", "Invoice Value",
-    ] #"Vendor/Customer Code"
+    ]
 
     validate_columns(gst, gst_required, "2B File")
     validate_columns(pur, pur_required, "Purchase File")
 
     # ---------------- PRESERVE ORIGINAL GSTIN ----------------
-    # We create the requested column before renaming for the merge
     pur["Vendor/Customer GSTIN"] = pur["GSTIN Of Vendor/Customer"]
 
     # Normalize Document Numbers
@@ -73,8 +72,8 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
 
     pur_agg = pur.groupby(["Supplier GSTIN", "doc_norm"], as_index=False).agg({
         "Reference Document No.": "first",
-        "Vendor/Customer GSTIN": "first",  # <-- Added to aggregation
-        "Vendor/Customer Name": "first",  #"Vendor/Customer Code": "first",
+        "Vendor/Customer GSTIN": "first",  
+        "Vendor/Customer Name": "first",  
         "Document Date": "first",
         "FI Document Number": "first",
         "Taxable Amount": "sum",
@@ -106,7 +105,7 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
             merged[col] = 0
         merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(0)
 
-    # ---------------- DIFF CALCULATION ----------------
+    # ---------------- INITIAL DIFF CALCULATION ----------------
     merged["IGST Diff"] = merged["IGST Amount_PUR"] - merged["IGST Amount_2B"]
     merged["CGST Diff"] = merged["CGST Amount_PUR"] - merged["CGST Amount_2B"]
     merged["SGST Diff"] = merged["SGST Amount_PUR"] - merged["SGST Amount_2B"]
@@ -139,6 +138,10 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
             left_doc = merged.at[left_idx, "doc_norm"]
             left_invoice = merged.at[left_idx, "Invoice Value_2B"]
 
+            # FIX: Skip blank document numbers to avoid false positive matches
+            if not left_doc or pd.isna(left_doc):
+                continue
+
             candidates = open_books[(open_books["Invoice Value_PUR"] - left_invoice).abs() <= tax_tolerance]
             if candidates.empty: continue
 
@@ -150,7 +153,7 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
                 
                 # Copy all relevant Purchase data to the 2B row
                 pur_columns = [col for col in merged.columns if col.endswith("_PUR") or col in [
-                    "Reference Document No.", "Vendor/Customer Name", #"Vendor/Customer Code", 
+                    "Reference Document No.", "Vendor/Customer Name", 
                     "FI Document Number", "Taxable Amount", "Vendor/Customer GSTIN"
                 ]]
                 for col in pur_columns:
@@ -160,6 +163,9 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
                 merged.at[left_idx, "Match_Status"] = "Fuzzy Match"
                 merged.at[left_idx, "Fuzzy Score"] = score
                 merged.at[right_idx, "Match_Status"] = "Fuzzy Consumed"
+
+                # FIX: Drop the consumed candidate from open_books to prevent double matching
+                open_books = open_books.drop(index=right_idx)
 
     merged = merged[merged["Match_Status"] != "Fuzzy Consumed"]
 
@@ -182,6 +188,17 @@ def process_reco(gst_df, pur_df, doc_threshold=75, tax_tolerance=10, gstin_misma
                 
                 # Ensure the Vendor/Customer GSTIN is visible on the 2B row for easy comparison
                 merged.at[left_idx, "Vendor/Customer GSTIN"] = merged.at[right_idx, "Vendor/Customer GSTIN"]
+                
+                # FIX: Remove consumed candidate and break to prevent double matching
+                open_books_final = open_books_final.drop(index=right_idx)
+                break 
+
+    # FIX: Recalculate diffs at the very end to ensure copied fuzzy match values are accurately reflected
+    merged["IGST Diff"] = merged["IGST Amount_PUR"] - merged["IGST Amount_2B"]
+    merged["CGST Diff"] = merged["CGST Amount_PUR"] - merged["CGST Amount_2B"]
+    merged["SGST Diff"] = merged["SGST Amount_PUR"] - merged["SGST Amount_2B"]
+    merged["Invoice Diff"] = merged["Invoice Value_PUR"] - merged["Invoice Value_2B"]
+    merged["Taxable Diff"] = merged["Taxable Amount"] - merged["Taxable Value"]
 
     merged.drop(columns=["_merge"], inplace=True)
 
