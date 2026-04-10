@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
 import io
-import plotly.express as px
 import reconciliation_logic as reco_logic
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
     page_title="GST Reco Pro",
-    page_icon="📊",
+    page_icon="📘",
     layout="wide"
 )
 
@@ -17,38 +16,33 @@ st.markdown("""
         .main-title {
             font-size: 32px;
             font-weight: 700;
-            margin-bottom: 10px;
         }
         .sub-text {
             color: #6c757d;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
-        .card {
-            padding: 20px;
-            border-radius: 12px;
-            background-color: #f8f9fa;
-            margin-bottom: 15px;
+        .section {
+            margin-top: 25px;
         }
     </style>
 """, unsafe_allow_html=True)
 
 # ---------------- HEADER ----------------
 st.markdown('<div class="main-title">📘 GST Reconciliation Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-text">Compare GSTR-2B with Purchase Register in seconds</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-text">Compare GSTR-2B with Purchase Register</div>', unsafe_allow_html=True)
 
-# ---------------- FILE UPLOAD SECTION ----------------
-with st.container():
-    st.markdown("### 📂 Upload Files")
+# ---------------- FILE UPLOAD ----------------
+st.markdown("### 📂 Upload Files")
 
-    col1, col2 = st.columns(2)
+col1, col2 = st.columns(2)
 
-    with col1:
-        gst_file = st.file_uploader("Upload GSTR-2B Excel", type=["xlsx"])
+with col1:
+    gst_file = st.file_uploader("Upload GSTR-2B Excel", type=["xlsx"])
 
-    with col2:
-        pur_file = st.file_uploader("Upload Purchase Register Excel", type=["xlsx"])
+with col2:
+    pur_file = st.file_uploader("Upload Purchase Register Excel", type=["xlsx"])
 
-# ---------------- MAIN PROCESS ----------------
+# ---------------- MAIN LOGIC ----------------
 if gst_file and pur_file:
 
     try:
@@ -62,7 +56,7 @@ if gst_file and pur_file:
 
         if st.button("🚀 Run Reconciliation", use_container_width=True):
 
-            with st.spinner("Processing... Please wait ⏳"):
+            with st.spinner("Processing... ⏳"):
                 result_df = reco_logic.process_reco(df_2b, df_books)
 
             # ---------------- SUMMARY ----------------
@@ -78,32 +72,28 @@ if gst_file and pur_file:
             c2.metric("✅ Matched", matched)
             c3.metric("❌ Unmatched", unmatched)
 
-            # ---------------- DATA TABLE ----------------
+            # ---------------- FILTER ----------------
+            st.markdown("## 🔍 Filter Data")
+
+            status_options = ["All"] + sorted(result_df["Match_Status"].dropna().unique().tolist())
+            selected_status = st.selectbox("Filter by Match Status", status_options)
+
+            if selected_status != "All":
+                filtered_df = result_df[result_df["Match_Status"] == selected_status]
+            else:
+                filtered_df = result_df
+
+            # ---------------- TABLE ----------------
             st.markdown("## 📋 Detailed Results")
 
-            def highlight_status(val):
-                if "Exact Match" in str(val):
-                    return "background-color: #d4edda"
-                elif "Mismatch" in str(val):
-                    return "background-color: #fff3cd"
-                elif "Open" in str(val):
-                    return "background-color: #f8d7da"
-                elif "Fuzzy" in str(val):
-                    return "background-color: #d1ecf1"
-                elif "PAN" in str(val):
-                    return "background-color: #e2e3ff"
-                return ""
-
-            styled_df = result_df.style.applymap(highlight_status, subset=["Match_Status"])
-
-            st.dataframe(styled_df, use_container_width=True)
+            st.dataframe(filtered_df, use_container_width=True)
 
             # ---------------- DOWNLOAD ----------------
             st.markdown("## 📥 Export Results")
 
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-                result_df.to_excel(writer, index=False)
+                filtered_df.to_excel(writer, index=False)
 
             st.download_button(
                 "⬇️ Download Excel Report",
