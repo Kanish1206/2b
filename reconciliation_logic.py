@@ -365,50 +365,5 @@ def process_reco(
 
     merged = compute_diffs(merged)
     merged.drop(columns=["_merge"], inplace=True, errors="ignore")
-    final_columns_order = [
-
-    # 🔹 Core Info
-    "Match_Status",
-    "Supplier GSTIN",
-    "Vendor/Customer GSTIN",
-    "Supplier Name",
-    "Vendor/Customer Name",
-
-    # 🔹 Document Info
-    "Document Number",
-    "Reference Document No.",
-    "doc_norm",
-    "Document Date_2B",
-    "Document Date_PUR",
-    "Return Period",
-
-    # 🔹 Values (2B)
-    "Taxable Value",
-    "IGST Amount_2B",
-    "CGST Amount_2B",
-    "SGST Amount_2B",
-    "Invoice Value_2B",
-
-    # 🔹 Values (Books)
-    "Taxable Amount",
-    "IGST Amount_PUR",
-    "CGST Amount_PUR",
-    "SGST Amount_PUR",
-    "Invoice Value_PUR",
-
-    # 🔹 Differences
-    "IGST Diff",
-    "CGST Diff",
-    "SGST Diff",
-
-    # 🔹 Extra
-    "Fuzzy Score"
-]
-
-# Keep only existing columns (safe)
-final_columns_order = [col for col in final_columns_order if col in merged.columns]
-
-# Reorder
-merged = merged[final_columns_order + [col for col in merged.columns if col not in final_columns_order]]
-
+    
     return merged
