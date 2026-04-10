@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from rapidfuzz import process, fuzz
 
-from rapidfuzz import process, fuzz
 
 
 # -------------------------------------------------
