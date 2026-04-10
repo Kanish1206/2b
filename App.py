@@ -78,21 +78,6 @@ if gst_file and pur_file:
             c2.metric("✅ Matched", matched)
             c3.metric("❌ Unmatched", unmatched)
 
-            # ---------------- CHART ----------------
-            st.markdown("## 📈 Match Distribution")
-
-            pie_df = result_df["Match_Status"].value_counts().reset_index()
-            pie_df.columns = ["Status", "Count"]
-
-            fig = px.pie(
-                pie_df,
-                names="Status",
-                values="Count",
-                hole=0.4,
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-
             # ---------------- DATA TABLE ----------------
             st.markdown("## 📋 Detailed Results")
 
