@@ -86,7 +86,7 @@ if gst_file and pur_file:
             # ---------------- TABLE ----------------
             st.markdown("## 📋 Detailed Results")
 
-            st.dataframe(filtered_df, use_container_width=True)
+            #st.dataframe( use_container_width=True)
 
             # ---------------- DOWNLOAD ----------------
             st.markdown("## 📥 Export Results")
