@@ -73,15 +73,15 @@ if gst_file and pur_file:
             c3.metric("❌ Unmatched", unmatched)
 
             # ---------------- FILTER ----------------
-            st.markdown("## 🔍 Filter Data")
+            #st.markdown("## 🔍 Filter Data")
 
-            status_options = ["All"] + sorted(result_df["Match_Status"].dropna().unique().tolist())
-            selected_status = st.selectbox("Filter by Match Status", status_options)
+            #status_options = ["All"] + sorted(result_df["Match_Status"].dropna().unique().tolist())
+            #selected_status = st.selectbox("Filter by Match Status", status_options)
 
-            if selected_status != "All":
-                filtered_df = result_df[result_df["Match_Status"] == selected_status]
-            else:
-                filtered_df = result_df
+            #if selected_status != "All":
+                #filtered_df = result_df[result_df["Match_Status"] == selected_status]
+            #else:
+                #filtered_df = result_df
 
             # ---------------- TABLE ----------------
             st.markdown("## 📋 Detailed Results")
