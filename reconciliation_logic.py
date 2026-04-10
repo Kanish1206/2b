@@ -398,6 +398,6 @@ def process_reco(
     priority_cols = [col for col in priority_cols if col in merged.columns]
 
 
-    #merged = merged[priority_cols + [col for col in merged.columns if col not in priority_cols]]
+    merged = merged[priority_cols + [col for col in merged.columns if col not in priority_cols]]
     
     return merged
