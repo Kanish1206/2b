@@ -365,5 +365,23 @@ def process_reco(
 
     merged = compute_diffs(merged)
     merged.drop(columns=["_merge"], inplace=True, errors="ignore")
+    priority_cols = [
+       "Match_Status",
+       "Supplier GSTIN",
+       "Vendor/Customer GSTIN",
+       "Document Number",
+       "Reference Document No.",
+       "Invoice Value_2B",
+       "Invoice Value_PUR",
+       "IGST Diff",
+       "CGST Diff",
+       "SGST Diff",
+       ]
+
+# Keep only columns that exist (avoids errors)
+    priority_cols = [col for col in priority_cols if col in merged.columns]
+
+# बाकी columns automatically add हो जाएंगे
+    merged = merged[priority_cols + [col for col in merged.columns if col not in priority_cols]]
     
     return merged
