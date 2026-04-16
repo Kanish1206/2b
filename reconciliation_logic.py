@@ -70,7 +70,7 @@ def process_reco(
         "DEBIT NOTE": "D",
     }
 
-    pur["Document Type"] = pur["Invoice Type"].map(doc_type_map).fillna("UNKNOWN")
+    #pur["Document Type"] = pur["Invoice Type"].map(doc_type_map).fillna("UNKNOWN")
 
     # ---------------- VALIDATION ----------------
     gst_required = [
