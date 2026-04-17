@@ -218,6 +218,7 @@ def process_reco(
 
                 for col in [
                     "Reference Document No.",
+                    "FI Document Number",
                     "Vendor/Customer GSTIN",
                     "Vendor/Customer Name",
                     "IGST Amount_PUR",
@@ -338,7 +339,7 @@ def process_reco(
 
             # ✅ Copy purchase data (IMPORTANT FIX)
             pur_cols = [col for col in merged.columns if col.endswith("_PUR") or col in [
-                "Reference Document No.", "Vendor/Customer Name", "Vendor/Customer GSTIN"
+                "Reference Document No.","FI Document Number", "Vendor/Customer Name", "Vendor/Customer GSTIN"
             ]]
 
             for col in pur_cols:
