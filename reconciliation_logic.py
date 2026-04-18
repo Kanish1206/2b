@@ -238,9 +238,10 @@ def process_reco(
     # ---------------- GSTIN MISMATCH ----------------
     open_2b = merged[merged["Match_Status"] == MATCH_OPEN_2B]
     open_books = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
-    
-    for left_idx in open_2b.index:
-        doc = merged.at[left_idx, "doc_norm"]
+
+for left_idx in open_2b.index:
+
+    doc = merged.at[left_idx, "doc_norm"]
     if not doc:
         continue
 
@@ -249,25 +250,11 @@ def process_reco(
     left_cgst = merged.at[left_idx, "CGST Amount_2B"]
     left_sgst = merged.at[left_idx, "SGST Amount_2B"]
 
-    # 🔍 Get all candidates (NO SKIPPING)
-    possible = open_books[open_books["doc_norm"] == doc].copy()
+    possible = open_books[open_books["doc_norm"] == doc]
 
-    if possible.empty:
-        continue
-
-    # ✅ Rank candidates by closest match (SMART FIX)
-    possible["score"] = (
-        (possible["Invoice Value_PUR"] - left_val).abs() +
-        (possible["IGST Amount_PUR"] - left_igst).abs() +
-        (possible["CGST Amount_PUR"] - left_cgst).abs() +
-        (possible["SGST Amount_PUR"] - left_sgst).abs()
-    )
-
-    # Sort best matches first
-    possible = possible.sort_values("score")
-
-    # Optional: limit to top 3 best (instead of skipping everything)
-    possible = possible.head(3)
+    # ❌ REMOVED THIS:
+    # if len(possible) > 3:
+    #     continue
 
     for right_idx in possible.index:
 
@@ -282,13 +269,8 @@ def process_reco(
             abs(left_cgst - right_cgst) <= tax_tolerance and
             abs(left_sgst - right_sgst) <= tax_tolerance
         ):
-            # ✅ Assign match
             merged.at[left_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
             merged.at[right_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
-
-            # ✅ Remove matched row from future consideration
-            open_books = open_books.drop(index=right_idx)
-
             break
 
     # ---------------- PAN MATCH ----------------
