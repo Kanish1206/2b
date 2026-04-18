@@ -237,11 +237,10 @@ def process_reco(
 
     # ---------------- GSTIN MISMATCH ----------------
     open_2b = merged[merged["Match_Status"] == MATCH_OPEN_2B]
-open_books = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
-
-for left_idx in open_2b.index:
-
-    doc = merged.at[left_idx, "doc_norm"]
+    open_books = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
+    
+    for left_idx in open_2b.index:
+        doc = merged.at[left_idx, "doc_norm"]
     if not doc:
         continue
 
