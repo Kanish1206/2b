@@ -415,30 +415,29 @@ def process_reco(
                 open_books = open_books.drop(index=right_idx)
                 break
     # ---------------- PAN MATCH ----------------
-
-open_2b_for_pan = merged[merged["Match_Status"] == MATCH_OPEN_2B]
-open_books_for_pan = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
+    open_2b_for_pan = merged[merged["Match_Status"] == MATCH_OPEN_2B]
+    open_books_for_pan = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
 
 # Create PAN safely
-merged["PAN_2B"] = (
-    merged["Supplier GSTIN"]
-    .fillna("")
-    .astype(str)
-    .str.strip()
-    .str.upper()
-    .str[2:12]
-)
+    merged["PAN_2B"] = (
+        merged["Supplier GSTIN"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        .str[2:12]
+    )
 
-merged["PAN_PUR"] = (
-    merged["Vendor/Customer GSTIN"]
-    .fillna("")
-    .astype(str)
-    .str.strip()
-    .str.upper()
-    .str[2:12]
-)
+    merged["PAN_PUR"] = (
+        merged["Vendor/Customer GSTIN"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        .str[2:12]
+    )
 
-for left_idx in open_2b_for_pan.index:
+    for left_idx in open_2b_for_pan.index:
 
     pan_2b = merged.at[left_idx, "PAN_2B"]
     doc_2b = merged.at[left_idx, "doc_norm"]
@@ -498,6 +497,7 @@ merged = merged[~merged["Match_Status"].isin([MATCH_PAN_CONSUMED])]
 
 # Drop helper columns
 merged.drop(columns=["PAN_2B", "PAN_PUR"], inplace=True, errors="ignore")
+
 
     # ---------------- CLEANUP ----------------
     merged = merged[~merged["Match_Status"].isin([
