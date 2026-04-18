@@ -236,8 +236,8 @@ def process_reco(
                 open_books = open_books.drop(index=right_idx)
 
     # ---------------- GSTIN MISMATCH ----------------
-    open_2b = merged[merged["Match_Status"] == MATCH_OPEN_2B]
-    open_books = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
+open_2b = merged[merged["Match_Status"] == MATCH_OPEN_2B]
+open_books = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
 
 for left_idx in open_2b.index:
 
@@ -272,7 +272,6 @@ for left_idx in open_2b.index:
             merged.at[left_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
             merged.at[right_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
             break
-
     # ---------------- PAN MATCH ----------------
 
     open_2b_for_pan = merged[merged["Match_Status"] == "Open in 2B"]
