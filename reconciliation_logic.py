@@ -44,7 +44,7 @@ def process_reco(
     pur = pur_df.copy()
 
     # ---------------- PREP ----------------
-    pur["Vendor/Customer GSTIN"] = pur["GSTIN Of Vendor/Customer"]
+    #pur["Vendor/Customer GSTIN"] = pur["GSTIN Of Vendor/Customer"]
     gst["doc_norm"] = normalize_doc(gst["Document Number"])
     pur["doc_norm"] = normalize_doc(pur["Reference Document No."])
     pur.rename(columns={"GSTIN Of Vendor/Customer": "Supplier GSTIN"}, inplace=True)
