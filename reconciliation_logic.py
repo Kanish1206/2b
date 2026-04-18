@@ -76,16 +76,16 @@ def process_reco(
     gst_required = [
         "Supplier GSTIN", "Document Number", "Document Date",
         "Return Period", "Taxable Value", "Supplier Name",
-        "IGST Amount", "CGST Amount", "SGST Amount", "Invoice Value",
-        "Document Type"
-    ]
+        "IGST Amount", "CGST Amount", "SGST Amount", "Invoice Value","Document Type"
+        
+    ] #
 
     pur_required = [
         "GSTIN Of Vendor/Customer", "Reference Document No.",
         "Taxable Amount", "Document Date",
         "Vendor/Customer Name", "IGST Amount", "CGST Amount",
         "SGST Amount", "Invoice Value", "Invoice Type"
-    ]
+    ] #
 
     validate_columns(gst, gst_required, "2B File")
     validate_columns(pur, pur_required, "Purchase File")
@@ -101,7 +101,7 @@ def process_reco(
 
     # ---------------- AGGREGATION ----------------
     gst_agg = gst.groupby(
-        ["Supplier GSTIN", "doc_norm"], as_index=False 
+        ["Supplier GSTIN", "doc_norm","Document Type"], as_index=False 
     ).agg({
         "Document Number": "first",
         "Return Period": "first",
@@ -112,9 +112,9 @@ def process_reco(
         "SGST Amount": "sum",
         "Taxable Value": "sum",
         "Invoice Value": "sum",
-    }) #,"Document Type"
+    }) #
     pur_agg = pur.groupby(
-        ["Supplier GSTIN", "doc_norm"], as_index=False
+        ["Supplier GSTIN", "doc_norm", "Document Type"], as_index=False
     ).agg({
         "Reference Document No.": "first",
         "Vendor/Customer GSTIN": "first",
@@ -126,12 +126,12 @@ def process_reco(
         "CGST Amount": "sum",
         "SGST Amount": "sum",
         "Invoice Value": "sum",
-    }) #, "Document Type"
+    }) #
 
     # ---------------- MERGE ----------------
     merged = gst_agg.merge(
         pur_agg,
-        on=["Supplier GSTIN", "doc_norm"],
+        on=["Supplier GSTIN", "doc_norm", "Document Type"],
         how="outer",
         suffixes=["_2B", "_PUR"],
         indicator=True,
@@ -221,6 +221,7 @@ def process_reco(
                     "FI Document Number",
                     "Vendor/Customer GSTIN",
                     "Vendor/Customer Name",
+                    "FI Document Number",
                     "IGST Amount_PUR",
                     "CGST Amount_PUR",
                     "SGST Amount_PUR",
@@ -238,38 +239,40 @@ def process_reco(
     # ---------------- GSTIN MISMATCH ----------------
     open_2b = merged[merged["Match_Status"] == MATCH_OPEN_2B]
     open_books = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
+
     for left_idx in open_2b.index:
+
         doc = merged.at[left_idx, "doc_norm"]
         if not doc:
             continue
 
-    left_val = merged.at[left_idx, "Invoice Value_2B"]
-    left_igst = merged.at[left_idx, "IGST Amount_2B"]
-    left_cgst = merged.at[left_idx, "CGST Amount_2B"]
-    left_sgst = merged.at[left_idx, "SGST Amount_2B"]
+        left_val = merged.at[left_idx, "Invoice Value_2B"]
+        left_igst = merged.at[left_idx, "IGST Amount_2B"]
+        left_cgst = merged.at[left_idx, "CGST Amount_2B"]
+        left_sgst = merged.at[left_idx, "SGST Amount_2B"]
 
-    possible = open_books[open_books["doc_norm"] == doc]
+        possible = open_books[open_books["doc_norm"] == doc]
 
-    # ❌ REMOVED THIS:
-    # if len(possible) > 3:
-    #     continue
+        #if len(possible) > 3:
+            #continue
 
-    for right_idx in possible.index:
+        for right_idx in possible.index:
 
-        right_val = merged.at[right_idx, "Invoice Value_PUR"]
-        right_igst = merged.at[right_idx, "IGST Amount_PUR"]
-        right_cgst = merged.at[right_idx, "CGST Amount_PUR"]
-        right_sgst = merged.at[right_idx, "SGST Amount_PUR"]
+            right_val = merged.at[right_idx, "Invoice Value_PUR"]
+            right_igst = merged.at[right_idx, "IGST Amount_PUR"]
+            right_cgst = merged.at[right_idx, "CGST Amount_PUR"]
+            right_sgst = merged.at[right_idx, "SGST Amount_PUR"]
 
-        if (
-            abs(left_val - right_val) <= gstin_mismatch_tolerance and
-            abs(left_igst - right_igst) <= tax_tolerance and
-            abs(left_cgst - right_cgst) <= tax_tolerance and
-            abs(left_sgst - right_sgst) <= tax_tolerance
-        ):
-            merged.at[left_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
-            merged.at[right_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
-            break
+            if (
+                abs(left_val - right_val) <= gstin_mismatch_tolerance and
+                abs(left_igst - right_igst) <= tax_tolerance and
+                abs(left_cgst - right_cgst) <= tax_tolerance and
+                abs(left_sgst - right_sgst) <= tax_tolerance
+            ):
+                merged.at[left_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
+                merged.at[right_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
+                break
+
     # ---------------- PAN MATCH ----------------
 
     open_2b_for_pan = merged[merged["Match_Status"] == "Open in 2B"]
@@ -355,6 +358,7 @@ def process_reco(
 
     # Drop helper columns
     merged.drop(columns=["PAN_2B", "PAN_PUR"], inplace=True, errors="ignore")
+    # ---------------- FINAL MATCH (IGNORE GSTIN) ----------------
     open_2b_final = merged[merged["Match_Status"] == MATCH_OPEN_2B]
     open_books_final = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
 
@@ -411,7 +415,6 @@ def process_reco(
             open_books_final = open_books_final.drop(index=right_idx)
 
             break
-    
 
     # ---------------- CLEANUP ----------------
     #merged = merged[~merged["Match_Status"].isin([
@@ -423,8 +426,6 @@ def process_reco(
     MATCH_PAN_CONSUMED,
     "Doc Consumed (Ignore GSTIN)"
     ])]
-    
-
     merged = compute_diffs(merged)
     merged.drop(columns=["_merge"], inplace=True, errors="ignore")
     priority_cols = [
