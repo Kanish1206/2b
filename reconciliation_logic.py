@@ -101,7 +101,7 @@ def process_reco(
 
     # ---------------- AGGREGATION ----------------
     gst_agg = gst.groupby(
-        ["Supplier GSTIN", "doc_norm","Document Type"], as_index=False 
+        ["Supplier GSTIN", "doc_norm"], as_index=False 
     ).agg({
         "Document Number": "first",
         "Return Period": "first",
@@ -112,9 +112,9 @@ def process_reco(
         "SGST Amount": "sum",
         "Taxable Value": "sum",
         "Invoice Value": "sum",
-    }) 
+    }) #,"Document Type"
     pur_agg = pur.groupby(
-        ["Supplier GSTIN", "doc_norm", "Document Type"], as_index=False
+        ["Supplier GSTIN", "doc_norm"], as_index=False
     ).agg({
         "Reference Document No.": "first",
         "Vendor/Customer GSTIN": "first",
@@ -126,16 +126,16 @@ def process_reco(
         "CGST Amount": "sum",
         "SGST Amount": "sum",
         "Invoice Value": "sum",
-    }) 
+    }) #, "Document Type"
 
     # ---------------- MERGE ----------------
     merged = gst_agg.merge(
         pur_agg,
-        on=["Supplier GSTIN", "doc_norm", "Document Type"],
+        on=["Supplier GSTIN", "doc_norm"],
         how="outer",
         suffixes=["_2B", "_PUR"],
         indicator=True,
-    ) #
+    ) #, "Document Type"
 
     # ---------------- NUMERIC CLEAN ----------------
     numeric_cols = [
@@ -237,40 +237,60 @@ def process_reco(
 
     # ---------------- GSTIN MISMATCH ----------------
     open_2b = merged[merged["Match_Status"] == MATCH_OPEN_2B]
-    open_books = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
+open_books = merged[merged["Match_Status"] == MATCH_OPEN_BOOKS]
 
-    for left_idx in open_2b.index:
+for left_idx in open_2b.index:
 
-        doc = merged.at[left_idx, "doc_norm"]
-        if not doc:
-            continue
+    doc = merged.at[left_idx, "doc_norm"]
+    if not doc:
+        continue
 
-        left_val = merged.at[left_idx, "Invoice Value_2B"]
-        left_igst = merged.at[left_idx, "IGST Amount_2B"]
-        left_cgst = merged.at[left_idx, "CGST Amount_2B"]
-        left_sgst = merged.at[left_idx, "SGST Amount_2B"]
+    left_val = merged.at[left_idx, "Invoice Value_2B"]
+    left_igst = merged.at[left_idx, "IGST Amount_2B"]
+    left_cgst = merged.at[left_idx, "CGST Amount_2B"]
+    left_sgst = merged.at[left_idx, "SGST Amount_2B"]
 
-        possible = open_books[open_books["doc_norm"] == doc]
+    # 🔍 Get all candidates (NO SKIPPING)
+    possible = open_books[open_books["doc_norm"] == doc].copy()
 
-        if len(possible) > 3:
-            continue
+    if possible.empty:
+        continue
 
-        for right_idx in possible.index:
+    # ✅ Rank candidates by closest match (SMART FIX)
+    possible["score"] = (
+        (possible["Invoice Value_PUR"] - left_val).abs() +
+        (possible["IGST Amount_PUR"] - left_igst).abs() +
+        (possible["CGST Amount_PUR"] - left_cgst).abs() +
+        (possible["SGST Amount_PUR"] - left_sgst).abs()
+    )
 
-            right_val = merged.at[right_idx, "Invoice Value_PUR"]
-            right_igst = merged.at[right_idx, "IGST Amount_PUR"]
-            right_cgst = merged.at[right_idx, "CGST Amount_PUR"]
-            right_sgst = merged.at[right_idx, "SGST Amount_PUR"]
+    # Sort best matches first
+    possible = possible.sort_values("score")
 
-            if (
-                abs(left_val - right_val) <= gstin_mismatch_tolerance and
-                abs(left_igst - right_igst) <= tax_tolerance and
-                abs(left_cgst - right_cgst) <= tax_tolerance and
-                abs(left_sgst - right_sgst) <= tax_tolerance
-            ):
-                merged.at[left_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
-                merged.at[right_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
-                break
+    # Optional: limit to top 3 best (instead of skipping everything)
+    possible = possible.head(3)
+
+    for right_idx in possible.index:
+
+        right_val = merged.at[right_idx, "Invoice Value_PUR"]
+        right_igst = merged.at[right_idx, "IGST Amount_PUR"]
+        right_cgst = merged.at[right_idx, "CGST Amount_PUR"]
+        right_sgst = merged.at[right_idx, "SGST Amount_PUR"]
+
+        if (
+            abs(left_val - right_val) <= gstin_mismatch_tolerance and
+            abs(left_igst - right_igst) <= tax_tolerance and
+            abs(left_cgst - right_cgst) <= tax_tolerance and
+            abs(left_sgst - right_sgst) <= tax_tolerance
+        ):
+            # ✅ Assign match
+            merged.at[left_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
+            merged.at[right_idx, "Match_Status"] = MATCH_GSTIN_MISMATCH
+
+            # ✅ Remove matched row from future consideration
+            open_books = open_books.drop(index=right_idx)
+
+            break
 
     # ---------------- PAN MATCH ----------------
 
