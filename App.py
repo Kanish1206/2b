@@ -131,9 +131,17 @@ if gst_file and pur_file:
             
             # --- CALCULATE METRICS ---
             total = len(result_df)
-            matched = result_df["Match_Status"].str.contains("Match", case=False, na=False).sum()
-            unmatched = total - matched
-            match_rate = (matched / total) * 100 if total > 0 else 0
+
+# 1. Find everything that has "Match"
+is_match = result_df["Match_Status"].str.contains("Match", case=False, na=False)
+
+# 2. Find everything that has "Fuzzy"
+is_fuzzy = result_df["Match_Status"].str.contains("Fuzzy", case=False, na=False)
+
+# 3. Combine: Count where it IS a match, AND is NOT fuzzy
+matched = (is_match & ~is_fuzzy).sum()
+
+unmatched = total - matched
 
             # --- CUSTOM KPI CARDS ---
             st.markdown(f"""
