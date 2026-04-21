@@ -137,6 +137,23 @@ st.markdown("""
         background-color: #EFF6FF !important; /* Very light blue background */
         border-radius: 12px !important;
     }
+    /* Fix for the overlapping "Upload" text */
+    [data-testid="stFileUploadDropzone"] div {
+        align-items: center !important;
+    }
+    
+    /* Resets the button padding so text has room to breathe */
+    [data-testid="stFileUploadDropzone"] button {
+        width: auto !important;
+        padding: 0.5rem 1rem !important;
+        display: inline-flex !important;
+        justify-content: center !important;
+    }
+    
+    /* Hides the default Streamlit SVG icon to stop the text bleeding */
+    [data-testid="stFileUploadDropzone"] svg {
+        display: none !important; 
+    }
 </style>
 """, unsafe_allow_html=True)
 
