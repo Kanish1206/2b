@@ -6,7 +6,7 @@ import reconciliation_logic as reco_logic
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
     page_title="GST Reco Pro",
-    page_icon="🔄",
+    page_icon="🧿",
     layout="wide"
 )
 
