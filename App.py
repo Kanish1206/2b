@@ -121,10 +121,10 @@ if gst_file and pur_file:
         # Center the button
         _, btn_col, _ = st.columns([1, 2, 1])
         with btn_col:
-            run_btn = st.button("🚀 INITIATE SMART AUDIT", use_container_width=True)
+            run_btn = st.button("🚀 INITIATE PROCESS", use_container_width=True)
 
         if run_btn:
-            with st.spinner("🧠 AI engine analyzing invoice discrepancies..."):
+            with st.spinner("🧠 Please Wait!..."):
                 result_df = reco_logic.process_reco(df_2b, df_books)
 
             st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
@@ -150,15 +150,12 @@ if gst_file and pur_file:
                         <div class="kpi-label">Discrepancies</div>
                         <div class="kpi-value" style="color: #F97316;">{unmatched:,}</div>
                     </div>
-                    <div class="kpi-card" style="border-bottom-color: #8B5CF6;">
-                        <div class="kpi-label">Match Efficiency</div>
-                        <div class="kpi-value" style="color: #8B5CF6;">{match_rate:.1f}%</div>
-                    </div>
+                    
                 </div>
             """, unsafe_allow_html=True)
 
             # --- DETAILED LEDGER (Direct View) ---
-            st.markdown("### 📋 Detailed Ledger")
+            st.markdown("### 📋 Detailed ")
             
             # FIXED: Changed applymap() to map() for modern Pandas compatibility
             st.dataframe(
