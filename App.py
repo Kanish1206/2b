@@ -1,195 +1,164 @@
 import streamlit as st
 import pandas as pd
 import io
-import plotly.express as px
 import reconciliation_logic as reco_logic
 
-# ---------------- CONFIG ----------------
+# ---------------- PAGE CONFIG ----------------
 st.set_page_config(
-    page_title="GST Reco Pro | Dashboard",
+    page_title="GST Reco Pro | Analytics",
     page_icon="⚡",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# ---------------- PREMIUM CSS ----------------
+# ---------------- CUSTOM STYLING (The "Modern" Look) ----------------
 st.markdown("""
-<style>
-    /* Main background and font */
+    <style>
+    /* Main Background and Font */
     .stApp {
-        background-color: #f8fafc;
+        background-color: #f8f9fb;
     }
     
-    /* Custom Card Design */
-    div[data-testid="stMetric"] {
-        background-color: #ffffff;
-        border: 1px solid #e2e8f0;
-        padding: 15px;
+    /* Custom Header Gradient */
+    .header-container {
+        background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 50%, #F59E0B 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    /* Metric Cards Styling */
+    [data-testid="stMetricValue"] {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1E3A8A;
+    }
+    
+    /* Custom Card Containers */
+    .reco-card {
+        background-color: white;
+        padding: 1.5rem;
         border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border-left: 5px solid #F59E0B;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 1rem;
+    }
+
+    /* Modern Buttons */
+    .stButton>button {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: white;
+        border: none;
+        padding: 0.6rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        color: white;
     }
     
-    /* Header Styling */
-    .main-title {
-        font-size: 3rem;
-        font-weight: 800;
-        background: -webkit-linear-gradient(#1e3a8a, #3b82f6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0;
+    /* Status indicators */
+    .status-box {
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        text-align: center;
     }
-    
-    .status-card {
-        padding: 20px;
-        border-radius: 10px;
-        background-color: #ffffff;
-        border-left: 5px solid #3b82f6;
-        margin-bottom: 20px;
-    }
-</style>
+    </style>
 """, unsafe_allow_html=True)
 
-# ---------------- HEADER ----------------
-col_header, col_logo = st.columns([4, 1])
-with col_header:
-    st.markdown('<p class="main-title">⚡ GST Reco Pro</p>', unsafe_allow_html=True)
-    st.markdown('<p style="color: #64748b; font-size: 1.2rem;">Automated Smart Reconciliation Engine</p>', unsafe_allow_html=True)
+# ---------------- HEADER SECTION ----------------
+st.markdown("""
+    <div class="header-container">
+        <h1 style='margin:0; font-size: 2.5rem;'>⚡ GST Reco Pro</h1>
+        <p style='margin:0; opacity: 0.9;'>Modern Purchase Register vs GSTR-2B Intelligence</p>
+    </div>
+""", unsafe_allow_html=True)
 
-# ---------------- SIDEBAR ----------------
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2621/2621846.png", width=80)
-    st.title("Control Center")
-    st.divider()
-    
-    filter_option = st.selectbox(
-        "🎯 Filter View",
-        ["All Records", "Perfect Match", "Mismatched / Missing"]
-    )
-    
-    search_text = st.text_input("🔍 Quick Search", placeholder="GSTIN or Invoice No...")
-    
-    st.divider()
-    st.caption("Developed for Omkar Enterprises v2.0")
-
-# ---------------- FILE UPLOAD (Clean UI) ----------------
-st.write("### 📂 Data Import")
+# ---------------- UPLOAD ZONE ----------------
 with st.container():
-    c1, c2 = st.columns(2)
-    with c1:
-        gst_file = st.file_uploader("📥 GSTR-2B (Excel)", type=["xlsx"], help="Upload the portal generated 2B")
-    with c2:
-        pur_file = st.file_uploader("📥 Purchase Register (Excel)", type=["xlsx"], help="Upload your Tally/ERP export")
+    st.markdown('<div class="reco-card"><h3>📂 Data Ingestion</h3>', unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        gst_file = st.file_uploader("Upload GSTR-2B (Excel)", type=["xlsx"], key="gst")
+    with col2:
+        pur_file = st.file_uploader("Purchase Register (Excel)", type=["xlsx"], key="pur")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------- CACHE & UTILS ----------------
-@st.cache_data
-def load_file(file):
-    df = pd.read_excel(file)
-    df.columns = df.columns.str.strip()
-    return df
-
-def explain_mismatch(row):
-    reasons = []
-    try:
-        if pd.notna(row.get("Invoice_Value_2B")) and pd.notna(row.get("Invoice_Value_Books")):
-            diff = abs(row["Invoice_Value_2B"] - row["Invoice_Value_Books"])
-            if diff > 1:
-                reasons.append(f"Value Diff: ₹{round(diff,2)}")
-
-        if str(row.get("GSTIN_x")) != str(row.get("GSTIN_y")) and pd.notna(row.get("GSTIN_y")):
-            reasons.append("GSTIN Mismatch")
-
-        if pd.isna(row.get("Invoice_No")):
-            reasons.append("Missing in Books")
-        
-        return " | ".join(reasons) if reasons else "Matched"
-    except:
-        return "Analysis Error"
-
-# ---------------- PROCESSING ----------------
+# ---------------- MAIN PROCESSOR ----------------
 if gst_file and pur_file:
     try:
-        df_2b = load_file(gst_file)
-        df_books = load_file(pur_file)
+        df_2b = pd.read_excel(gst_file)
+        df_books = pd.read_excel(pur_file)
         
-        st.markdown("---")
-        if st.button("🚀 Execute Smart Reconciliation", use_container_width=True, type="primary"):
-            
-            with st.spinner("Processing large datasets..."):
+        # Simple cleanup
+        df_2b.columns = df_2b.columns.str.strip()
+        df_books.columns = df_books.columns.str.strip()
+
+        # Action Area
+        st.markdown("<br>", unsafe_allow_html=True)
+        run_btn = st.button("🚀 INITIATE RECONCILIATION", use_container_width=True)
+
+        if run_btn:
+            with st.spinner("🧠 Analyzing discrepancies..."):
                 result_df = reco_logic.process_reco(df_2b, df_books)
-                result_df["Explanation"] = result_df.apply(explain_mismatch, axis=1)
 
-            # --- KPI METRICS ---
+            # --- ANALYTICS DASHBOARD ---
+            st.markdown("### 📊 Executive Summary")
+            
             total = len(result_df)
-            matched = result_df["Explanation"].str.contains("Matched").sum()
+            matched = result_df["Match_Status"].str.contains("Match", case=False, na=False).sum()
             unmatched = total - matched
-            accuracy = (matched / total) if total else 0
+            match_rate = (matched / total) * 100 if total > 0 else 0
 
+            # Metric Tiles
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Total Invoices", f"{total:,}")
-            m2.metric("Matched", f"{matched:,}", f"{accuracy:.1%}")
-            m3.metric("Mismatched", f"{unmatched:,}", f"-{1-accuracy:.1%}", delta_color="inverse")
-            m4.metric("Reco Health", f"{accuracy:.1%}")
+            m1.metric("Total Records", total)
+            m2.metric("Fully Matched", matched, f"{match_rate:.1f}%")
+            m3.metric("Mismatches", unmatched, f"-{100-match_rate:.1f}%", delta_color="inverse")
+            m4.metric("Risk Score", "Low" if match_rate > 90 else "Medium")
 
-            # --- REPLACING PIE CHART WITH HEALTH BAR ---
-            st.write("### 📊 Reconciliation Health")
-            health_color = "#22c55e" if accuracy > 0.8 else "#f59e0b" if accuracy > 0.5 else "#ef4444"
-            st.markdown(f"""
-                <div style="width: 100%; background-color: #e2e8f0; border-radius: 20px; height: 25px;">
-                    <div style="width: {accuracy*100}%; background-color: {health_color}; height: 25px; border-radius: 20px; text-align: center; color: white; font-weight: bold;">
-                        {accuracy:.1%} Match Rate
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-
-            # --- DATA DISTRIBUTION (BETTER THAN PIE) ---
-            st.write("")
-            c_left, c_right = st.columns([2, 1])
+            # --- DATA VIEW ---
+            st.markdown('<div class="reco-card">', unsafe_allow_html=True)
+            st.subheader("📋 Reconciliation Ledger")
             
-            with c_left:
-                st.subheader("📋 Reconciliation Ledger")
-                # Apply Filters
-                display_df = result_df.copy()
-                if filter_option == "Perfect Match":
-                    display_df = display_df[display_df["Explanation"] == "Matched"]
-                elif filter_option == "Mismatched / Missing":
-                    display_df = display_df[display_df["Explanation"] != "Matched"]
-                
-                if search_text:
-                    display_df = display_df[display_df.astype(str).apply(lambda x: x.str.contains(search_text, case=False)).any(axis=1)]
+            # Style the dataframe (Blue headers)
+            st.dataframe(
+                result_df.style.set_properties(**{'background-color': '#ffffff', 'color': '#1E3A8A'})
+                .highlight_null(color='#f8d7da'),
+                use_container_width=True,
+                height=400
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
 
-                st.dataframe(display_df, use_container_width=True, height=400)
-
-            with c_right:
-                st.subheader("🧾 Audit Summary")
-                issue_counts = result_df[result_df["Explanation"] != "Matched"]["Explanation"].value_counts()
-                if not issue_counts.empty:
-                    st.write("Top Issues Found:")
-                    st.bar_chart(issue_counts)
-                else:
-                    st.success("No critical issues found!")
-
-            # --- EXPORT ---
-            st.divider()
-            st.write("### 📥 Download Reports")
-            ec1, ec2 = st.columns(2)
-            
+            # --- EXPORT SECTION ---
+            st.markdown("### 📥 Export Result")
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-                result_df.to_excel(writer, sheet_name="Full_Report", index=False)
+                result_df.to_excel(writer, index=False)
             
-            ec1.download_button(
-                label="📁 Download Complete Excel",
+            st.download_button(
+                label="✨ DOWNLOAD RECONCILIATION REPORT (EXCEL)",
                 data=output.getvalue(),
-                file_name="GST_Reco_Final.xlsx",
-                mime="application/vnd.ms-excel",
+                file_name="GST_Reco_Smart_Report.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
-            
-            if ec2.button("📋 Copy Summary to Clipboard", use_container_width=True):
-                st.toast("Summary copied! (Feature logic pending)")
 
     except Exception as e:
-        st.error(f"Analysis Interrupted: {e}")
+        st.error(f"🚨 Process Error: {str(e)}")
+
 else:
-    # Landing Page State
-    st.info("💡 Please upload GSTR-2B and Purchase Register to activate the engine.")
-    st.image("https://img.freepik.com/free-vector/data-extraction-concept-illustration_114360-4766.jpg", width=400)
+    # Modern Empty State
+    st.markdown("""
+        <div style="text-align: center; padding: 50px; border: 2px dashed #3B82F6; border-radius: 15px; color: #1E3A8A;">
+            <h3>Waiting for Data Input...</h3>
+            <p>Please upload both excel files in the section above to begin the automated audit.</p>
+        </div>
+    """, unsafe_allow_html=True)
