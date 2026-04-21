@@ -99,35 +99,45 @@ st.markdown("""
     /* Primary Action Button (Run) - Bold Orange */
     div.stButton > button {
         background-color: #EA580C !important; 
-        color: white !important;
-        border: none !important;
+        border: 2px solid #EA580C !important;
         border-radius: 8px !important;
-        font-weight: 700 !important;
         width: 100% !important;
         padding: 0.6rem !important;
         transition: all 0.2s ease-in-out;
     }
+    
+    /* Force the text inside the Run button to be white */
+    div.stButton > button * {
+        color: #FFFFFF !important; 
+        font-weight: 700 !important;
+    }
+
     div.stButton > button:hover {
         background-color: #C2410C !important;
+        border-color: #C2410C !important;
         box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3) !important;
-        color: white !important;
     }
 
     /* Secondary Action Button (Download) - Emerald Green */
     div.stDownloadButton > button {
         background-color: #10B981 !important; 
-        color: white !important;
-        border: none !important;
+        border: 2px solid #10B981 !important;
         border-radius: 8px !important;
-        font-weight: 700 !important;
         width: 100% !important;
         padding: 0.6rem !important;
         transition: all 0.2s ease-in-out;
     }
+    
+    /* Force the text inside the Download button to be white */
+    div.stDownloadButton > button * {
+        color: #FFFFFF !important; 
+        font-weight: 700 !important;
+    }
+
     div.stDownloadButton > button:hover {
         background-color: #059669 !important;
+        border-color: #059669 !important;
         box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3) !important;
-        color: white !important;
     }
 
     /* Metric Cards */
