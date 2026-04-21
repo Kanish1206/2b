@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import io
-import plotly.express as px
 import reconciliation_logic as reco_logic
 
 # ---------------- PAGE CONFIG ----------------
@@ -132,7 +131,6 @@ if gst_file and pur_file:
             
             # --- CALCULATE METRICS ---
             total = len(result_df)
-            # Assuming logic outputs a column "Match_Status" containing "Match" or "Mismatch"
             matched = result_df["Match_Status"].str.contains("Match", case=False, na=False).sum()
             unmatched = total - matched
             match_rate = (matched / total) * 100 if total > 0 else 0
@@ -159,55 +157,34 @@ if gst_file and pur_file:
                 </div>
             """, unsafe_allow_html=True)
 
-            # --- TABS FOR BETTER ORGANIZATION ---
-            tab1, tab2 = st.tabs(["📊 Visual Dashboard", "📋 Detailed Ledger"])
-
-            with tab1:
-                col_chart, col_insights = st.columns([1.5, 1])
-                
-                with col_chart:
-                    # Sleek Donut Chart
-                    chart_data = pd.DataFrame({
-                        "Status": ["Matched", "Unmatched"],
-                        "Count": [matched, unmatched]
-                    })
-                    fig = px.pie(chart_data, values='Count', names='Status', hole=0.6,
-                                 color='Status', 
-                                 color_discrete_map={'Matched':'#3B82F6', 'Unmatched':'#F97316'})
-                    fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor="rgba(0,0,0,0)",
-                                      plot_bgcolor="rgba(0,0,0,0)", font=dict(family="sans-serif", size=14))
-                    fig.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#FFFFFF', width=2)))
-                    st.plotly_chart(fig, use_container_width=True)
-                
-                with col_insights:
-                    st.markdown("### 💡 Quick Insights")
-                    st.info(f"**{match_rate:.1f}%** of your books align perfectly with the GST portal.")
-                    if unmatched > 0:
-                        st.warning(f"Requires attention: **{unmatched}** invoices need manual review or vendor follow-up.")
-                    else:
-                        st.success("Perfect reconciliation! No action required.")
-
-            with tab2:
-                st.dataframe(
-                    result_df.style.applymap(lambda x: "background-color: #FFEDD5" if x == "Mismatch" else "", subset=["Match_Status"]),
-                    use_container_width=True, height=400
-                )
-
-                # --- EXPORT SECTION ---
-                st.markdown("<br>", unsafe_allow_html=True)
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-                    result_df.to_excel(writer, index=False)
-                
-                st.download_button(
-                    label="📥 DOWNLOAD FINAL REPORT (EXCEL)",
-                    data=output.getvalue(),
-                    file_name="GST_Reco_Smart_Report.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
+            # --- DETAILED LEDGER (Direct View) ---
+            st.markdown("### 📋 Detailed Ledger")
             
-            st.markdown('</div>', unsafe_allow_html=True) # End animation div
+            # FIXED: Changed applymap() to map() for modern Pandas compatibility
+            st.dataframe(
+                result_df.style.map(
+                    lambda x: "background-color: #FFEDD5" if x == "Mismatch" else "", 
+                    subset=["Match_Status"]
+                ),
+                use_container_width=True, 
+                height=400
+            )
+
+            # --- EXPORT SECTION ---
+            st.markdown("<br>", unsafe_allow_html=True)
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                result_df.to_excel(writer, index=False)
+            
+            st.download_button(
+                label="📥 DOWNLOAD FINAL REPORT (EXCEL)",
+                data=output.getvalue(),
+                file_name="GST_Reco_Smart_Report.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"🚨 Process Error: {str(e)}")
