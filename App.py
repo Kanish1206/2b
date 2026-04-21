@@ -10,24 +10,94 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- HEADER ----------------
+# ---------------- CUSTOM CSS ----------------
 st.markdown("""
-    <h1 style='margin-bottom:5px;'>📘 GST Reconciliation Dashboard</h1>
-    <p style='color:gray;'>Compare GSTR-2B with Purchase Register</p>
+<style>
+/* Main background */
+body {
+    background-color: #f5f7fb;
+}
+
+/* Header styling */
+.header-box {
+    padding: 25px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #4A90E2, #007AFF);
+    color: white;
+    margin-bottom: 20px;
+}
+
+/* Card styling */
+.metric-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0px 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Section titles */
+.section-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+/* Upload box */
+.upload-box {
+    padding: 15px;
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    background-color: #fafafa;
+}
+
+/* Button styling */
+div.stButton > button {
+    background: linear-gradient(135deg, #007AFF, #4A90E2);
+    color: white;
+    border-radius: 10px;
+    height: 45px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Download button */
+div.stDownloadButton > button {
+    background: #10b981;
+    color: white;
+    border-radius: 10px;
+    height: 45px;
+    font-weight: 600;
+}
+</style>
 """, unsafe_allow_html=True)
 
-st.divider()
+# ---------------- HEADER ----------------
+st.markdown("""
+<div class="header-box">
+    <h1>📘 GST Reconciliation Dashboard</h1>
+    <p>Compare GSTR-2B with Purchase Register seamlessly</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ---------------- SIDEBAR ----------------
+st.sidebar.title("⚙️ Controls")
+st.sidebar.info("Upload files and run reconciliation")
 
 # ---------------- FILE UPLOAD ----------------
-st.subheader("📂 Upload Files")
+st.markdown('<div class="section-title">📂 Upload Files</div>', unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 
 with col1:
+    st.markdown('<div class="upload-box">', unsafe_allow_html=True)
     gst_file = st.file_uploader("Upload GSTR-2B Excel", type=["xlsx"])
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
+    st.markdown('<div class="upload-box">', unsafe_allow_html=True)
     pur_file = st.file_uploader("Upload Purchase Register Excel", type=["xlsx"])
+    st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 
@@ -49,7 +119,7 @@ if gst_file and pur_file:
                 result_df = reco_logic.process_reco(df_2b, df_books)
 
             # ---------------- SUMMARY ----------------
-            st.subheader("📊 Summary")
+            st.markdown('<div class="section-title">📊 Summary</div>', unsafe_allow_html=True)
 
             total = len(result_df)
             matched = result_df["Match_Status"].str.contains("Match", case=False, na=False).sum()
@@ -57,21 +127,41 @@ if gst_file and pur_file:
 
             c1, c2, c3 = st.columns(3)
 
-            c1.metric("📄 Total Records", total)
-            c2.metric("✅ Matched", matched)
-            c3.metric("❌ Unmatched", unmatched)
+            with c1:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>📄 Total</h3>
+                    <h2>{total}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with c2:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>✅ Matched</h3>
+                    <h2 style='color:green;'>{matched}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with c3:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>❌ Unmatched</h3>
+                    <h2 style='color:red;'>{unmatched}</h2>
+                </div>
+                """, unsafe_allow_html=True)
 
             st.divider()
 
             # ---------------- TABLE ----------------
-            st.subheader("📋 Detailed Results")
+            st.markdown('<div class="section-title">📋 Detailed Results</div>', unsafe_allow_html=True)
 
-            st.dataframe(result_df, use_container_width=True)
+            st.dataframe(result_df, use_container_width=True, height=500)
 
             st.divider()
 
             # ---------------- DOWNLOAD ----------------
-            st.subheader("📥 Download Report")
+            st.markdown('<div class="section-title">📥 Download Report</div>', unsafe_allow_html=True)
 
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
