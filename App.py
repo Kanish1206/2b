@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
+import plotly.express as px
 import reconciliation_logic as reco_logic
 
 # ---------------- PAGE CONFIG ----------------
@@ -11,85 +12,103 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ---------------- CUSTOM STYLING (The "Modern" Look) ----------------
+# ---------------- ULTRA-MODERN CSS INJECTION ----------------
 st.markdown("""
     <style>
-    /* Main Background and Font */
-    .stApp {
-        background-color: #f8f9fb;
-    }
+    /* Main Background */
+    .stApp { background-color: #F0F4F8; }
     
-    /* Custom Header Gradient */
-    .header-container {
-        background: linear-gradient(90deg, #1E3A8A 0%, #3B82F6 50%, #F59E0B 100%);
-        padding: 2rem;
-        border-radius: 15px;
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade { animation: fadeIn 0.6s ease-out forwards; }
+
+    /* Hero Header */
+    .hero-header {
+        background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #F97316 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 16px;
         color: white;
         margin-bottom: 2rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-
-    /* Metric Cards Styling */
-    [data-testid="stMetricValue"] {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1E3A8A;
+        box-shadow: 0 10px 25px rgba(30, 58, 138, 0.2);
+        position: relative;
+        overflow: hidden;
     }
     
-    /* Custom Card Containers */
-    .reco-card {
-        background-color: white;
+    /* Custom KPI Cards */
+    .kpi-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .kpi-card {
+        background: white;
         padding: 1.5rem;
         border-radius: 12px;
-        border-left: 5px solid #F59E0B;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        margin-bottom: 1rem;
+        flex: 1;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border-bottom: 4px solid #3B82F6;
+        text-align: center;
+        transition: transform 0.3s ease;
     }
+    .kpi-card:hover { transform: translateY(-5px); }
+    .kpi-card.orange { border-bottom: 4px solid #F97316; }
+    .kpi-value { font-size: 2.2rem; font-weight: 800; color: #0F172A; margin: 0.5rem 0; }
+    .kpi-label { font-size: 0.9rem; color: #64748B; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
     /* Modern Buttons */
     .stButton>button {
-        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
         color: white;
         border: none;
-        padding: 0.6rem 2rem;
-        border-radius: 8px;
-        font-weight: 600;
+        padding: 0.8rem 2rem;
+        border-radius: 50px; /* Pill shape */
+        font-weight: bold;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
     }
     .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
         color: white;
     }
     
-    /* Status indicators */
-    .status-box {
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
+    /* Empty State */
+    .empty-state {
+        background: white;
+        padding: 4rem 2rem;
         text-align: center;
+        border-radius: 16px;
+        border: 2px dashed #CBD5E1;
+        color: #64748B;
+        margin-top: 2rem;
     }
     </style>
 """, unsafe_allow_html=True)
 
 # ---------------- HEADER SECTION ----------------
 st.markdown("""
-    <div class="header-container">
-        <h1 style='margin:0; font-size: 2.5rem;'>⚡ GST Reco Pro</h1>
-        <p style='margin:0; opacity: 0.9;'>Modern Purchase Register vs GSTR-2B Intelligence</p>
+    <div class="hero-header animate-fade">
+        <h1 style='margin:0; font-size: 3rem; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>⚡ GST Intelligence Hub</h1>
+        <p style='margin:5px 0 0 0; font-size: 1.2rem; opacity: 0.9;'>Automated GSTR-2B vs Books Reconciliation</p>
     </div>
 """, unsafe_allow_html=True)
 
 # ---------------- UPLOAD ZONE ----------------
-with st.container():
-    st.markdown('<div class="reco-card"><h3>📂 Data Ingestion</h3>', unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        gst_file = st.file_uploader("Upload GSTR-2B (Excel)", type=["xlsx"], key="gst")
-    with col2:
-        pur_file = st.file_uploader("Purchase Register (Excel)", type=["xlsx"], key="pur")
-    st.markdown('</div>', unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("#### 📘 GSTR-2B Data")
+    gst_file = st.file_uploader("Drop GSTR-2B Excel here", type=["xlsx"], key="gst", label_visibility="collapsed")
+with col2:
+    st.markdown("#### 📙 Purchase Register")
+    pur_file = st.file_uploader("Drop Purchase Books Excel here", type=["xlsx"], key="pur", label_visibility="collapsed")
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------- MAIN PROCESSOR ----------------
 if gst_file and pur_file:
@@ -97,68 +116,106 @@ if gst_file and pur_file:
         df_2b = pd.read_excel(gst_file)
         df_books = pd.read_excel(pur_file)
         
-        # Simple cleanup
         df_2b.columns = df_2b.columns.str.strip()
         df_books.columns = df_books.columns.str.strip()
 
-        # Action Area
-        st.markdown("<br>", unsafe_allow_html=True)
-        run_btn = st.button("🚀 INITIATE RECONCILIATION", use_container_width=True)
+        # Center the button
+        _, btn_col, _ = st.columns([1, 2, 1])
+        with btn_col:
+            run_btn = st.button("🚀 INITIATE SMART AUDIT", use_container_width=True)
 
         if run_btn:
-            with st.spinner("🧠 Analyzing discrepancies..."):
+            with st.spinner("🧠 AI engine analyzing invoice discrepancies..."):
                 result_df = reco_logic.process_reco(df_2b, df_books)
 
-            # --- ANALYTICS DASHBOARD ---
-            st.markdown("### 📊 Executive Summary")
+            st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
             
+            # --- CALCULATE METRICS ---
             total = len(result_df)
+            # Assuming logic outputs a column "Match_Status" containing "Match" or "Mismatch"
             matched = result_df["Match_Status"].str.contains("Match", case=False, na=False).sum()
             unmatched = total - matched
             match_rate = (matched / total) * 100 if total > 0 else 0
 
-            # Metric Tiles
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Total Records", total)
-            m2.metric("Fully Matched", matched, f"{match_rate:.1f}%")
-            m3.metric("Mismatches", unmatched, f"-{100-match_rate:.1f}%", delta_color="inverse")
-            m4.metric("Risk Score", "Low" if match_rate > 90 else "Medium")
+            # --- CUSTOM KPI CARDS ---
+            st.markdown(f"""
+                <div class="kpi-container">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total Invoices Processed</div>
+                        <div class="kpi-value">{total:,}</div>
+                    </div>
+                    <div class="kpi-card" style="border-bottom-color: #10B981;">
+                        <div class="kpi-label">Perfect Matches</div>
+                        <div class="kpi-value" style="color: #10B981;">{matched:,}</div>
+                    </div>
+                    <div class="kpi-card orange">
+                        <div class="kpi-label">Discrepancies</div>
+                        <div class="kpi-value" style="color: #F97316;">{unmatched:,}</div>
+                    </div>
+                    <div class="kpi-card" style="border-bottom-color: #8B5CF6;">
+                        <div class="kpi-label">Match Efficiency</div>
+                        <div class="kpi-value" style="color: #8B5CF6;">{match_rate:.1f}%</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
-            # --- DATA VIEW ---
-            st.markdown('<div class="reco-card">', unsafe_allow_html=True)
-            st.subheader("📋 Reconciliation Ledger")
-            
-            # Style the dataframe (Blue headers)
-            st.dataframe(
-                result_df.style.set_properties(**{'background-color': '#ffffff', 'color': '#1E3A8A'})
-                .highlight_null(color='#f8d7da'),
-                use_container_width=True,
-                height=400
-            )
-            st.markdown('</div>', unsafe_allow_html=True)
+            # --- TABS FOR BETTER ORGANIZATION ---
+            tab1, tab2 = st.tabs(["📊 Visual Dashboard", "📋 Detailed Ledger"])
 
-            # --- EXPORT SECTION ---
-            st.markdown("### 📥 Export Result")
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-                result_df.to_excel(writer, index=False)
+            with tab1:
+                col_chart, col_insights = st.columns([1.5, 1])
+                
+                with col_chart:
+                    # Sleek Donut Chart
+                    chart_data = pd.DataFrame({
+                        "Status": ["Matched", "Unmatched"],
+                        "Count": [matched, unmatched]
+                    })
+                    fig = px.pie(chart_data, values='Count', names='Status', hole=0.6,
+                                 color='Status', 
+                                 color_discrete_map={'Matched':'#3B82F6', 'Unmatched':'#F97316'})
+                    fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), paper_bgcolor="rgba(0,0,0,0)",
+                                      plot_bgcolor="rgba(0,0,0,0)", font=dict(family="sans-serif", size=14))
+                    fig.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#FFFFFF', width=2)))
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                with col_insights:
+                    st.markdown("### 💡 Quick Insights")
+                    st.info(f"**{match_rate:.1f}%** of your books align perfectly with the GST portal.")
+                    if unmatched > 0:
+                        st.warning(f"Requires attention: **{unmatched}** invoices need manual review or vendor follow-up.")
+                    else:
+                        st.success("Perfect reconciliation! No action required.")
+
+            with tab2:
+                st.dataframe(
+                    result_df.style.applymap(lambda x: "background-color: #FFEDD5" if x == "Mismatch" else "", subset=["Match_Status"]),
+                    use_container_width=True, height=400
+                )
+
+                # --- EXPORT SECTION ---
+                st.markdown("<br>", unsafe_allow_html=True)
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                    result_df.to_excel(writer, index=False)
+                
+                st.download_button(
+                    label="📥 DOWNLOAD FINAL REPORT (EXCEL)",
+                    data=output.getvalue(),
+                    file_name="GST_Reco_Smart_Report.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
             
-            st.download_button(
-                label="✨ DOWNLOAD RECONCILIATION REPORT (EXCEL)",
-                data=output.getvalue(),
-                file_name="GST_Reco_Smart_Report.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
+            st.markdown('</div>', unsafe_allow_html=True) # End animation div
 
     except Exception as e:
         st.error(f"🚨 Process Error: {str(e)}")
 
 else:
-    # Modern Empty State
     st.markdown("""
-        <div style="text-align: center; padding: 50px; border: 2px dashed #3B82F6; border-radius: 15px; color: #1E3A8A;">
-            <h3>Waiting for Data Input...</h3>
-            <p>Please upload both excel files in the section above to begin the automated audit.</p>
+        <div class="empty-state animate-fade">
+            <h2 style="margin-bottom: 10px;">Awaiting Data Injection 🚀</h2>
+            <p>Upload your <b>GSTR-2B</b> and <b>Purchase Register</b> files above to trigger the reconciliation engine.</p>
         </div>
     """, unsafe_allow_html=True)
