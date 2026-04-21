@@ -54,14 +54,14 @@ st.markdown("""
         padding: 2rem !important;
     }
 
-    /* Nuke all native Streamlit content inside the button */
+    /* Nuke all native Streamlit content inside the upload button */
     [data-testid="stFileUploadDropzone"] button * {
         display: none !important;
         opacity: 0 !important;
         visibility: hidden !important;
     }
 
-    /* Base button styling */
+    /* Base upload button styling */
     [data-testid="stFileUploadDropzone"] button {
         background-color: #FFFFFF !important;
         border: 2px solid #2563EB !important;
@@ -72,7 +72,7 @@ st.markdown("""
         min-height: 42px !important;
     }
 
-    /* Inject the custom text securely */
+    /* Inject the custom upload text securely */
     [data-testid="stFileUploadDropzone"] button::after {
         content: "📁 Browse Files" !important;
         position: absolute;
@@ -94,10 +94,11 @@ st.markdown("""
         display: none !important;
     }
 
-    /* --- 2. FIXED RUN & DOWNLOAD BUTTON CSS --- */
+    /* --- 2. THE "NUCLEAR OPTION" FOR RUN & DOWNLOAD BUTTONS --- */
     
-    /* Primary Action Button (Run) - Bold Orange */
-    div.stButton > button {
+    /* 🔴 RUN BUTTON (Solid Orange) */
+    [data-testid="stButton"] button {
+        background: #EA580C !important;
         background-color: #EA580C !important; 
         border: 2px solid #EA580C !important;
         border-radius: 8px !important;
@@ -106,20 +107,24 @@ st.markdown("""
         transition: all 0.2s ease-in-out;
     }
     
-    /* Force the text inside the Run button to be white */
-    div.stButton > button * {
+    /* Force ALL text inside the Run button to be white */
+    [data-testid="stButton"] button p, 
+    [data-testid="stButton"] button span, 
+    [data-testid="stButton"] button div {
         color: #FFFFFF !important; 
-        font-weight: 700 !important;
+        font-weight: 800 !important;
+        font-size: 16px !important;
     }
 
-    div.stButton > button:hover {
+    [data-testid="stButton"] button:hover {
         background-color: #C2410C !important;
         border-color: #C2410C !important;
-        box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3) !important;
+        box-shadow: 0 4px 10px rgba(234, 88, 12, 0.4) !important;
     }
 
-    /* Secondary Action Button (Download) - Emerald Green */
-    div.stDownloadButton > button {
+    /* 🟢 DOWNLOAD BUTTON (Solid Green) */
+    [data-testid="stDownloadButton"] button {
+        background: #10B981 !important;
         background-color: #10B981 !important; 
         border: 2px solid #10B981 !important;
         border-radius: 8px !important;
@@ -128,16 +133,19 @@ st.markdown("""
         transition: all 0.2s ease-in-out;
     }
     
-    /* Force the text inside the Download button to be white */
-    div.stDownloadButton > button * {
+    /* Force ALL text inside the Download button to be white */
+    [data-testid="stDownloadButton"] button p, 
+    [data-testid="stDownloadButton"] button span, 
+    [data-testid="stDownloadButton"] button div {
         color: #FFFFFF !important; 
-        font-weight: 700 !important;
+        font-weight: 800 !important;
+        font-size: 16px !important;
     }
 
-    div.stDownloadButton > button:hover {
+    [data-testid="stDownloadButton"] button:hover {
         background-color: #059669 !important;
         border-color: #059669 !important;
-        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3) !important;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4) !important;
     }
 
     /* Metric Cards */
