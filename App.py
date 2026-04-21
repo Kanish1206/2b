@@ -46,7 +46,7 @@ st.markdown("""
         font-weight: 500;
     }
 
-    /* --- FIXED FILE UPLOADER CSS --- */
+    /* --- 1. FIXED FILE UPLOADER CSS --- */
     [data-testid="stFileUploadDropzone"] {
         border: 2px dashed #93C5FD !important;
         background-color: #EFF6FF !important;
@@ -54,11 +54,11 @@ st.markdown("""
         padding: 2rem !important;
     }
 
-    /* Hide the inner span/div text completely to prevent "uploaUpload" overlap */
-    [data-testid="stFileUploadDropzone"] button p,
-    [data-testid="stFileUploadDropzone"] button div,
-    [data-testid="stFileUploadDropzone"] button span {
+    /* Nuke all native Streamlit content inside the button */
+    [data-testid="stFileUploadDropzone"] button * {
         display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
     }
 
     /* Base button styling */
@@ -68,14 +68,17 @@ st.markdown("""
         border-radius: 8px !important;
         position: relative;
         padding: 0.5rem 2rem !important;
-        min-width: 160px;
-        min-height: 42px;
+        min-width: 180px !important;
+        min-height: 42px !important;
     }
 
-    /* Inject single custom text cleanly */
+    /* Inject the custom text securely */
     [data-testid="stFileUploadDropzone"] button::after {
-        content: "📁 Browse Files";
+        content: "📁 Browse Files" !important;
         position: absolute;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
         left: 0;
         right: 0;
         top: 50%;
@@ -84,21 +87,17 @@ st.markdown("""
         font-weight: 600;
         font-size: 14px;
         text-align: center;
-        pointer-events: none;
     }
 
-    [data-testid="stFileUploadDropzone"] svg {
-        display: none !important;
-    }
-    
+    /* Hide the 'drag and drop' text */
     [data-testid="stFileUploadDropzone"] section > div > div > span {
         display: none !important;
     }
 
-    /* --- NEW BUTTON STYLES --- */
+    /* --- 2. FIXED RUN & DOWNLOAD BUTTON CSS --- */
     
-    /* Primary Action Button (Run) - Orange */
-    [data-testid="stButton"] button[kind="primary"] {
+    /* Primary Action Button (Run) - Bold Orange */
+    div.stButton > button {
         background-color: #EA580C !important; 
         color: white !important;
         border: none !important;
@@ -108,13 +107,14 @@ st.markdown("""
         padding: 0.6rem !important;
         transition: all 0.2s ease-in-out;
     }
-    [data-testid="stButton"] button[kind="primary"]:hover {
+    div.stButton > button:hover {
         background-color: #C2410C !important;
-        box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);
+        box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3) !important;
+        color: white !important;
     }
 
     /* Secondary Action Button (Download) - Emerald Green */
-    [data-testid="stDownloadButton"] button {
+    div.stDownloadButton > button {
         background-color: #10B981 !important; 
         color: white !important;
         border: none !important;
@@ -124,9 +124,10 @@ st.markdown("""
         padding: 0.6rem !important;
         transition: all 0.2s ease-in-out;
     }
-    [data-testid="stDownloadButton"] button:hover {
+    div.stDownloadButton > button:hover {
         background-color: #059669 !important;
-        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3) !important;
+        color: white !important;
     }
 
     /* Metric Cards */
@@ -208,8 +209,7 @@ if gst_file and pur_file:
         
         _, center_btn, _ = st.columns([1, 2, 1])
         with center_btn:
-            # Setting type="primary" connects this button to the new Orange CSS above
-            run_btn = st.button("▶ Run Reconciliation Process", type="primary")
+            run_btn = st.button("▶ Run Reconciliation Process")
 
         if run_btn:
             with st.spinner("Processing data arrays..."):
@@ -255,9 +255,8 @@ if gst_file and pur_file:
 
             dl_col1, _ = st.columns([1, 3])
             with dl_col1:
-                # The custom CSS block will automatically style this as the green download button
                 st.download_button(
-                    "📥 Download Excel File",
+                    label="📥 Download Excel File",
                     data=output.getvalue(),
                     file_name="GST_Reconciliation_Report.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
