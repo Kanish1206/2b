@@ -45,23 +45,42 @@ st.markdown("""
         color: #64748B;
         font-weight: 500;
     }
-    [data-testid="stFileUploadDropzone"] div {
-        align-items: center !important;
-    }
-    
-    /* Resets the button padding so text has room to breathe */
     [data-testid="stFileUploadDropzone"] button {
-        width: auto !important;
-        padding: 0.5rem 1rem !important;
-        display: inline-flex !important;
-        justify-content: center !important;
-    }
-    
-    /* Hides the default Streamlit SVG icon to stop the text bleeding */
-    [data-testid="stFileUploadDropzone"] svg {
-        display: none !important; 
+        position: relative !important;
+        color: transparent !important; 
+        background-color: #FFFFFF !important;
+        border: 2px solid #2563EB !important;
+        border-radius: 8px !important;
+        min-width: 150px !important;
+        height: 42px !important;
+        overflow: hidden !important;
     }
 
+    /* 2. Nuke the hidden Streamlit SVG icon */
+    [data-testid="stFileUploadDropzone"] button svg {
+        display: none !important;
+    }
+
+    /* 3. Inject our own clean, perfectly aligned text */
+    [data-testid="stFileUploadDropzone"] button::after {
+        content: "📁 Browse Files" !important;
+        position: absolute !important;
+        color: #2563EB !important; /* Navy/Royal Blue */
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        font-family: 'Inter', sans-serif !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 100% !important;
+        text-align: center !important;
+        pointer-events: none !important; /* Ensures the button is still clickable */
+    }
+    
+    /* 4. Add a nice hover effect to the new button */
+    [data-testid="stFileUploadDropzone"] button:hover {
+        background-color: #EFF6FF !important;
+    }
     /* Flexbox Card Container for Perfect Alignment */
     .metric-row {
         display: flex;
