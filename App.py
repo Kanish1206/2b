@@ -45,6 +45,22 @@ st.markdown("""
         color: #64748B;
         font-weight: 500;
     }
+    [data-testid="stFileUploadDropzone"] div {
+        align-items: center !important;
+    }
+    
+    /* Resets the button padding so text has room to breathe */
+    [data-testid="stFileUploadDropzone"] button {
+        width: auto !important;
+        padding: 0.5rem 1rem !important;
+        display: inline-flex !important;
+        justify-content: center !important;
+    }
+    
+    /* Hides the default Streamlit SVG icon to stop the text bleeding */
+    [data-testid="stFileUploadDropzone"] svg {
+        display: none !important; 
+    }
 
     /* Flexbox Card Container for Perfect Alignment */
     .metric-row {
