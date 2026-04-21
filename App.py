@@ -11,35 +11,48 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- CLEAN CSS ----------------
+# ---------------- CSS ----------------
 st.markdown("""
 <style>
-.main-title {
-    font-size: 2.5rem;
+body {
+    background-color: #F6F8FB;
+}
+.hero {
+    padding: 20px 0px 10px 0px;
+}
+.title {
+    font-size: 2.6rem;
     font-weight: 800;
     color: #1E3A8A;
 }
-.sub-text {
+.subtitle {
     color: #64748B;
     margin-bottom: 20px;
 }
 .card {
     background: white;
     padding: 18px;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    border-radius: 14px;
+    box-shadow: 0px 3px 10px rgba(0,0,0,0.05);
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------- HEADER ----------------
-st.markdown('<div class="main-title">📘 GST Reconciliation Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-text">Smart comparison of GSTR-2B vs Purchase Register</div>', unsafe_allow_html=True)
+st.markdown('<div class="hero">', unsafe_allow_html=True)
+st.markdown('<div class="title">📘 GST Reco Pro</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">AI-powered GST 2B vs Purchase Register Reconciliation</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------- SIDEBAR ----------------
 st.sidebar.title("⚙️ Controls")
 
-show_only_unmatched = st.sidebar.checkbox("Show only unmatched", value=False)
+filter_option = st.sidebar.selectbox(
+    "Filter Data",
+    ["All", "Matched", "Unmatched"]
+)
+
+search_text = st.sidebar.text_input("🔍 Search Vendor / Invoice")
 
 # ---------------- FILE UPLOAD ----------------
 st.subheader("📂 Upload Files")
@@ -47,14 +60,14 @@ st.subheader("📂 Upload Files")
 col1, col2 = st.columns(2)
 
 with col1:
-    gst_file = st.file_uploader("GSTR-2B File", type=["xlsx"])
+    gst_file = st.file_uploader("Upload GSTR-2B", type=["xlsx"])
 
 with col2:
-    pur_file = st.file_uploader("Purchase Register", type=["xlsx"])
+    pur_file = st.file_uploader("Upload Purchase Register", type=["xlsx"])
 
 # ---------------- CACHE ----------------
 @st.cache_data
-def load_data(file):
+def load_file(file):
     df = pd.read_excel(file)
     df.columns = df.columns.str.strip()
     return df
@@ -63,64 +76,70 @@ def load_data(file):
 if gst_file and pur_file:
 
     try:
-        df_2b = load_data(gst_file)
-        df_books = load_data(pur_file)
+        df_2b = load_file(gst_file)
+        df_books = load_file(pur_file)
 
-        st.success("Files loaded successfully ✔️")
+        st.success("Files uploaded successfully ✔️")
 
         if st.button("🚀 Run Reconciliation", use_container_width=True):
 
-            with st.spinner("Running reconciliation..."):
+            with st.spinner("Running smart reconciliation..."):
                 result_df = reco_logic.process_reco(df_2b, df_books)
 
-            # ---------------- METRICS ----------------
+            # ---------------- KPIs ----------------
             total = len(result_df)
             matched = result_df["Match_Status"].str.contains("Match", case=False, na=False).sum()
             unmatched = total - matched
+            accuracy = (matched / total * 100) if total else 0
 
             c1, c2, c3, c4 = st.columns(4)
 
-            c1.metric("Total Records", f"{total:,}")
-            c2.metric("Matched", f"{matched:,}")
-            c3.metric("Unmatched", f"{unmatched:,}")
-            c4.metric("Accuracy %", f"{(matched/total*100):.1f}%" if total else "0%")
+            c1.metric("📄 Total", f"{total:,}")
+            c2.metric("✅ Matched", f"{matched:,}")
+            c3.metric("❌ Unmatched", f"{unmatched:,}")
+            c4.metric("🎯 Accuracy", f"{accuracy:.1f}%")
 
             st.divider()
 
             # ---------------- CHART ----------------
-            st.subheader("📊 Reconciliation Overview")
+            st.subheader("📊 Overview")
 
             chart_df = pd.DataFrame({
                 "Status": ["Matched", "Unmatched"],
                 "Count": [matched, unmatched]
             })
 
-            fig = px.pie(chart_df, names="Status", values="Count",
-                         color="Status",
-                         color_discrete_map={
-                             "Matched": "#10B981",
-                             "Unmatched": "#EF4444"
-                         })
+            
 
             st.plotly_chart(fig, use_container_width=True)
 
-            # ---------------- FILTER ----------------
-            st.subheader("📋 Detailed Results")
+            # ---------------- FILTER LOGIC ----------------
+            if filter_option == "Matched":
+                result_df = result_df[result_df["Match_Status"].str.contains("Match", case=False, na=False)]
 
-            if show_only_unmatched:
+            elif filter_option == "Unmatched":
                 result_df = result_df[~result_df["Match_Status"].str.contains("Match", case=False, na=False)]
 
-            st.dataframe(result_df, use_container_width=True, height=450)
+            # ---------------- SEARCH ----------------
+            if search_text:
+                result_df = result_df[
+                    result_df.astype(str)
+                    .apply(lambda row: row.str.contains(search_text, case=False).any(), axis=1)
+                ]
+
+            # ---------------- TABLE ----------------
+            st.subheader("📋 Detailed Results")
+            st.dataframe(result_df, use_container_width=True, height=500)
 
             # ---------------- DOWNLOAD ----------------
-            st.subheader("📥 Export")
+            st.subheader("📥 Export Report")
 
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
                 result_df.to_excel(writer, index=False)
 
             st.download_button(
-                "⬇️ Download Report",
+                "⬇️ Download Excel",
                 data=output.getvalue(),
                 file_name="GST_Reco_Report.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -128,7 +147,7 @@ if gst_file and pur_file:
             )
 
     except Exception as e:
-        st.error(f"Error: {str(e)}")
+        st.error(f"❌ Error: {str(e)}")
 
 else:
-    st.info("Upload both files to begin")
+    st.info("👆 Upload both files to start reconciliation")
