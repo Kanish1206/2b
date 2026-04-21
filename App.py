@@ -54,17 +54,25 @@ st.markdown("""
         padding: 2rem !important;
     }
 
-    /* Hide the default button text and icon */
+    /* Hide the inner span/div text completely to prevent "uploaUpload" overlap */
+    [data-testid="stFileUploadDropzone"] button p,
+    [data-testid="stFileUploadDropzone"] button div,
+    [data-testid="stFileUploadDropzone"] button span {
+        display: none !important;
+    }
+
+    /* Base button styling */
     [data-testid="stFileUploadDropzone"] button {
         background-color: #FFFFFF !important;
         border: 2px solid #2563EB !important;
         border-radius: 8px !important;
-        color: transparent !important; /* Hide original text */
         position: relative;
         padding: 0.5rem 2rem !important;
+        min-width: 160px;
+        min-height: 42px;
     }
 
-    /* Inject single custom text */
+    /* Inject single custom text cleanly */
     [data-testid="stFileUploadDropzone"] button::after {
         content: "📁 Browse Files";
         position: absolute;
@@ -83,9 +91,42 @@ st.markdown("""
         display: none !important;
     }
     
-    /* Remove the redundant 'or drag and drop' text if desired */
     [data-testid="stFileUploadDropzone"] section > div > div > span {
         display: none !important;
+    }
+
+    /* --- NEW BUTTON STYLES --- */
+    
+    /* Primary Action Button (Run) - Orange */
+    [data-testid="stButton"] button[kind="primary"] {
+        background-color: #EA580C !important; 
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        width: 100% !important;
+        padding: 0.6rem !important;
+        transition: all 0.2s ease-in-out;
+    }
+    [data-testid="stButton"] button[kind="primary"]:hover {
+        background-color: #C2410C !important;
+        box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3);
+    }
+
+    /* Secondary Action Button (Download) - Emerald Green */
+    [data-testid="stDownloadButton"] button {
+        background-color: #10B981 !important; 
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        width: 100% !important;
+        padding: 0.6rem !important;
+        transition: all 0.2s ease-in-out;
+    }
+    [data-testid="stDownloadButton"] button:hover {
+        background-color: #059669 !important;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
     }
 
     /* Metric Cards */
@@ -133,15 +174,6 @@ st.markdown("""
         border-bottom: 2px solid #E2E8F0;
         padding-bottom: 0.5rem;
     }
-
-    /* Primary Action Button (Orange) */
-    div.stButton > button {
-        background-color: #EA580C !important; 
-        color: white !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        width: 100% !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -176,7 +208,8 @@ if gst_file and pur_file:
         
         _, center_btn, _ = st.columns([1, 2, 1])
         with center_btn:
-            run_btn = st.button("▶ Run Reconciliation Process")
+            # Setting type="primary" connects this button to the new Orange CSS above
+            run_btn = st.button("▶ Run Reconciliation Process", type="primary")
 
         if run_btn:
             with st.spinner("Processing data arrays..."):
@@ -222,6 +255,7 @@ if gst_file and pur_file:
 
             dl_col1, _ = st.columns([1, 3])
             with dl_col1:
+                # The custom CSS block will automatically style this as the green download button
                 st.download_button(
                     "📥 Download Excel File",
                     data=output.getvalue(),
