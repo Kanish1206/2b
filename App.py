@@ -5,144 +5,161 @@ import reconciliation_logic as reco_logic
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
-    page_title="GST Reco Pro | Advanced Audit",
-    page_icon="🛡️",
-    layout="wide"
+    page_title="GST Audit Engine | Premium",
+    page_icon="⚡",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# ---------------- MODERN NEUMORPHIC CSS ----------------
+# ---------------- ULTRA-PREMIUM DARK CSS ----------------
 st.markdown("""
 <style>
-    /* Global Background & Font */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+    /* Premium Font Import */
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
+    /* Core App Background */
     html, body, [class*="st-"] {
-        font-family: 'Inter', sans-serif;
-        background-color: #F8FAFC;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #09090B !important; /* Deepest black/zinc */
+        color: #FAFAFA !important;
     }
 
-    /* Remove Streamlit Header/Footer */
+    /* Hide default streamlit elements */
     header {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* Modern Header */
-    .hero-section {
-        padding: 2rem 0rem;
-        text-align: left;
+    /* Typography Classes */
+    .gradient-text {
+        background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+        font-size: 3rem;
+        letter-spacing: -1.5px;
+        margin-bottom: 0px;
     }
-    .hero-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1E293B;
-        margin-bottom: 0.5rem;
-        letter-spacing: -1px;
-    }
-    .hero-subtitle {
-        color: #64748B;
+    .sub-heading {
+        color: #A1A1AA;
         font-size: 1.1rem;
-    }
-
-    /* Glassmorphism Metric Cards */
-    .card-container {
-        display: flex;
-        gap: 1.5rem;
+        font-weight: 400;
         margin-bottom: 2rem;
     }
-    .modern-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 16px;
-        border: 1px solid #E2E8F0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        flex: 1;
-        transition: transform 0.2s ease;
+
+    /* Bento Box Grid System */
+    .bento-card {
+        background: rgba(24, 24, 27, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 24px;
+        transition: all 0.3s ease;
+        height: 100%;
     }
-    .modern-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    .bento-card:hover {
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px -15px rgba(0,0,0,0.5);
     }
-    .card-label {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #64748B;
+
+    /* Metric Styling inside Bento */
+    .metric-label {
+        font-size: 0.9rem;
+        color: #A1A1AA;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 1px;
+        font-weight: 600;
+        margin-bottom: 8px;
     }
-    .card-value {
-        font-size: 2rem;
+    .metric-value {
+        font-size: 2.5rem;
         font-weight: 700;
-        color: #0F172A;
-        margin-top: 0.5rem;
+        color: #FFFFFF;
+        line-height: 1.2;
     }
+    
+    /* Status Colors */
+    .text-success { color: #34D399; }
+    .text-danger { color: #FB7185; }
+    .text-info { color: #38BDF8; }
 
-    /* Custom File Uploader Styling */
+    /* Custom File Uploader */
     [data-testid="stFileUploadDropzone"] {
-        border: 2px dashed #CBD5E1 !important;
-        border-radius: 12px !important;
-        background-color: #FFFFFF !important;
-        padding: 2rem !important;
-    }
-
-    /* Modern Buttons */
-    div.stButton > button {
-        background-color: #2563EB !important;
-        color: white !important;
-        border-radius: 8px !important;
-        border: none !important;
-        padding: 0.6rem 2rem !important;
-        font-weight: 600 !important;
-        width: 100% !important;
+        background: rgba(24, 24, 27, 0.4) !important;
+        border: 1px dashed rgba(255, 255, 255, 0.2) !important;
+        border-radius: 16px !important;
         transition: all 0.3s ease !important;
     }
-    div.stButton > button:hover {
-        background-color: #1D4ED8 !important;
-        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3) !important;
+    [data-testid="stFileUploadDropzone"]:hover {
+        border-color: #38BDF8 !important;
+        background: rgba(56, 189, 248, 0.05) !important;
     }
 
-    /* Download Button - Secondary Action */
-    div.stDownloadButton > button {
-        background-color: #059669 !important;
-        border-radius: 8px !important;
+    /* The 'Execute' Button */
+    div.stButton > button {
+        background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%) !important;
         color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 0.75rem 0rem !important;
+        font-size: 1.1rem !important;
         font-weight: 600 !important;
+        letter-spacing: 0.5px !important;
+        width: 100% !important;
+        box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.39) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    }
+    div.stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.6) !important;
     }
 
-    /* Sidebar Styling */
-    section[data-testid="stSidebar"] {
-        background-color: #FFFFFF !important;
-        border-right: 1px solid #E2E8F0;
+    /* Download Button */
+    div.stDownloadButton > button {
+        background: rgba(24, 24, 27, 0.8) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+        border-radius: 12px !important;
+        font-weight: 500 !important;
+    }
+    div.stDownloadButton > button:hover {
+        border-color: #34D399 !important;
+        color: #34D399 !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- HERO SECTION ----------------
+# ---------------- HEADER ----------------
 st.markdown("""
-<div class="hero-section">
-    <div class="hero-title">🛡️ GST Reco <span style='color:#2563EB'>Pro</span></div>
-    <div class="hero-subtitle">High-fidelity reconciliation engine for GSTR-2B and Purchase Books.</div>
+<div>
+    <h1 class="gradient-text">Nexus Recon Engine</h1>
+    <p class="sub-heading">Intelligent GSTR-2B & Purchase Ledger synchronization protocol.</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ---------------- SIDEBAR ----------------
-with st.sidebar:
-    st.markdown("### ⚙️ Settings")
-    st.write("Adjust matching sensitivity and rules.")
-    threshold = st.slider("Matching Threshold (₹)", 0.0, 10.0, 1.0)
-    st.divider()
-    st.info("System Version: 2.0.4-Stable")
-
-# ---------------- FILE UPLOAD ----------------
-st.markdown("### 📂 Data Ingestion")
-col1, col2 = st.columns(2)
+# ---------------- FILE UPLOAD (BENTO ROW 1) ----------------
+st.markdown("<br>", unsafe_allow_html=True)
+col1, col2 = st.columns(2, gap="large")
 
 with col1:
-    gst_file = st.file_uploader("Step 1: Upload GSTR-2B (Portal Data)", type=["xlsx"])
+    st.markdown("""
+        <div style="margin-bottom: -40px; z-index: 10; position: relative; padding-left: 10px;">
+            <span style="color: #38BDF8; font-weight: 600; font-size: 0.9rem;">NODE 01</span>
+        </div>
+    """, unsafe_allow_html=True)
+    gst_file = st.file_uploader("GSTR-2B Portal Extract", type=["xlsx"])
 
 with col2:
-    pur_file = st.file_uploader("Step 2: Upload Purchase Register (ERP Data)", type=["xlsx"])
+    st.markdown("""
+        <div style="margin-bottom: -40px; z-index: 10; position: relative; padding-left: 10px;">
+            <span style="color: #818CF8; font-weight: 600; font-size: 0.9rem;">NODE 02</span>
+        </div>
+    """, unsafe_allow_html=True)
+    pur_file = st.file_uploader("ERP Purchase Register", type=["xlsx"])
 
 # ---------------- MAIN LOGIC ----------------
+st.markdown("<br><br>", unsafe_allow_html=True)
+
 if gst_file and pur_file:
     try:
         df_2b = pd.read_excel(gst_file)
@@ -150,75 +167,95 @@ if gst_file and pur_file:
 
         df_2b.columns = df_2b.columns.str.strip()
         df_books.columns = df_books.columns.str.strip()
-
-        st.markdown("---")
         
         # Action Center
-        c_btn1, c_btn2, c_btn3 = st.columns([1,2,1])
-        with c_btn2:
-            run_btn = st.button("🚀 Process Reconciliation")
+        _, btn_col, _ = st.columns([1, 2, 1])
+        with btn_col:
+            run_btn = st.button("⚡ Initialize Audit Sequence")
 
         if run_btn:
-            with st.spinner("Analyzing transaction patterns..."):
-                # Mocking result if reco_logic isn't provided, otherwise calls it
+            with st.spinner("Synchronizing datasets & mapping tax parameters..."):
+                # Call your logic
                 result_df = reco_logic.process_reco(df_2b, df_books)
 
-            # ---------------- MODERN SUMMARY CARDS ----------------
+            # ---------------- BENTO METRICS ROW ----------------
             total = len(result_df)
             matched = result_df["Match_Status"].str.contains("Match", case=False, na=False).sum()
             unmatched = total - matched
             match_pct = (matched / total) * 100 if total > 0 else 0
 
-            st.markdown(f"""
-            <div class="card-container">
-                <div class="modern-card">
-                    <div class="card-label">Total Invoices</div>
-                    <div class="card-value">{total:,}</div>
-                </div>
-                <div class="modern-card" style="border-left: 5px solid #10B981;">
-                    <div class="card-label">Fully Matched</div>
-                    <div class="card-value" style="color: #10B981;">{matched:,}</div>
-                </div>
-                <div class="modern-card" style="border-left: 5px solid #EF4444;">
-                    <div class="card-label">Discrepancies</div>
-                    <div class="card-value" style="color: #EF4444;">{unmatched:,}</div>
-                </div>
-                <div class="modern-card" style="border-left: 5px solid #2563EB;">
-                    <div class="card-label">Accuracy Rate</div>
-                    <div class="card-value" style="color: #2563EB;">{match_pct:.1f}%</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            m1, m2, m3, m4 = st.columns(4)
 
-            # ---------------- DATA TABLE ----------------
-            st.markdown("### 📋 Detailed Audit Trail")
+            with m1:
+                st.markdown(f"""
+                <div class="bento-card">
+                    <div class="metric-label">Processed Vectors</div>
+                    <div class="metric-value">{total:,}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with m2:
+                st.markdown(f"""
+                <div class="bento-card" style="box-shadow: inset 0 2px 0 0 rgba(52, 211, 153, 0.5);">
+                    <div class="metric-label">Perfect Matches</div>
+                    <div class="metric-value text-success">{matched:,}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with m3:
+                st.markdown(f"""
+                <div class="bento-card" style="box-shadow: inset 0 2px 0 0 rgba(251, 113, 133, 0.5);">
+                    <div class="metric-label">Anomalies Detected</div>
+                    <div class="metric-value text-danger">{unmatched:,}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with m4:
+                st.markdown(f"""
+                <div class="bento-card" style="box-shadow: inset 0 2px 0 0 rgba(56, 189, 248, 0.5);">
+                    <div class="metric-label">System Confidence</div>
+                    <div class="metric-value text-info">{match_pct:.1f}%</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # ---------------- DATA TABLE ROW ----------------
+            st.markdown("<br><br><div class='sub-heading' style='color:#FFFFFF; font-weight:600;'>Audit Log Output</div>", unsafe_allow_html=True)
+            
+            # Use Streamlit's native dataframe which auto-adapts to dark mode nicely
             st.dataframe(
-                result_df.style.background_gradient(subset=None, cmap='BuGn', axis=0), 
+                result_df, 
                 use_container_width=True, 
-                height=450
+                height=400,
+                hide_index=True
             )
 
-            # ---------------- EXPORT ----------------
-            st.markdown("### 📥 Export Result")
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-                result_df.to_excel(writer, index=False)
+            # ---------------- EXPORT ROW ----------------
+            st.markdown("<br>", unsafe_allow_html=True)
+            _, exp_col = st.columns([3, 1])
+            
+            with exp_col:
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+                    result_df.to_excel(writer, index=False)
 
-            st.download_button(
-                "⬇️ Download Reconciliation Report (.xlsx)",
-                data=output.getvalue(),
-                file_name="GST_Audit_Report.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
+                st.download_button(
+                    "⭳ Export Final Matrix (.xlsx)",
+                    data=output.getvalue(),
+                    file_name="Nexus_Audit_Matrix.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
 
     except Exception as e:
-        st.error(f"⚠️ Critical Processing Error: {str(e)}")
+        st.error(f"System Fault Detected: {str(e)}")
 
 else:
-    # Empty State
+    # High-end Empty State
     st.markdown("""
-        <div style="text-align: center; padding: 4rem; background: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0; margin-top: 2rem;">
-            <p style="color: #64748B; font-size: 1.2rem;">Waiting for document uploads to begin analysis.</p>
+        <div style="text-align: center; padding: 5rem 2rem; background: rgba(24, 24, 27, 0.4); border-radius: 24px; border: 1px dashed rgba(255, 255, 255, 0.1); margin-top: 3rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">🛰️</div>
+            <h3 style="color: #FAFAFA; font-weight: 600;">System Standby</h3>
+            <p style="color: #A1A1AA; font-size: 1.1rem;">Awaiting telemetry data. Upload both ledgers to initialize the array.</p>
         </div>
     """, unsafe_allow_html=True)
