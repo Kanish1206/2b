@@ -167,7 +167,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # ---------------- PROCESS TRIGGER ----------------
 if gst_file and pur_file:
-    # Only show the button if data hasn't been processed yet
     if st.session_state["result_df"] is None:
         _, btn_col, _ = st.columns([1, 2, 1])
         with btn_col:
@@ -226,18 +225,6 @@ if st.session_state["result_df"] is not None:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- DETAILED LEDGER (Direct View) ---
-    st.markdown("### 📋 Detailed Reconciliation Ledger")
-    st.dataframe(
-        result_df.style.map(
-            lambda x: "background-color: #FFEDD5" if x in ["Mismatch", MATCH_OPEN_2B, MATCH_OPEN_BOOKS] 
-                      else ("background-color: #DCFCE7" if x == "Manual Match" else ""), 
-            subset=["Match_Status"]
-        ),
-        use_container_width=True, 
-        height=300
-    )
-
     # ════════════════════════════════════════════════════════
     #  SPLIT FILTER + SEARCH  ──  2B (left) | Books (right)
     # ════════════════════════════════════════════════════════
@@ -250,7 +237,6 @@ if st.session_state["result_df"] is not None:
     st.markdown("### 🔍 Filter & Search")
     fs_left, fs_right = st.columns(2)
 
-    # ── Left: GSTR-2B ────────────────────────────────────────
     with fs_left:
         st.markdown('<div class="side-header-2b animate-left">📘 GSTR-2B — Filter & Search</div>', unsafe_allow_html=True)
 
@@ -263,20 +249,10 @@ if st.session_state["result_df"] is not None:
         )
         sb2, sv2 = st.columns([1, 2])
         with sb2:
-            twoB_search_by = st.selectbox(
-                "Search by",
-                options=["— None —", "GSTIN", "PAN"],
-                key="search_by_2b"
-            )
+            twoB_search_by = st.selectbox("Search by", options=["— None —", "GSTIN", "PAN"], key="search_by_2b")
         with sv2:
-            twoB_search_val = st.text_input(
-                "2B search value",
-                placeholder="Type GSTIN or PAN…",
-                key="search_val_2b",
-                label_visibility="collapsed"
-            )
+            twoB_search_val = st.text_input("2B search value", placeholder="Type GSTIN or PAN…", key="search_val_2b", label_visibility="collapsed")
 
-    # ── Right: Purchase Register ─────────────────────────────
     with fs_right:
         st.markdown('<div class="side-header-pur animate-right">📙 Purchase Register — Filter & Search</div>', unsafe_allow_html=True)
 
@@ -289,18 +265,9 @@ if st.session_state["result_df"] is not None:
         )
         sbp, svp = st.columns([1, 2])
         with sbp:
-            pur_search_by = st.selectbox(
-                "Search by",
-                options=["— None —", "GSTIN", "PAN"],
-                key="search_by_pur"
-            )
+            pur_search_by = st.selectbox("Search by", options=["— None —", "GSTIN", "PAN"], key="search_by_pur")
         with svp:
-            pur_search_val = st.text_input(
-                "Books search value",
-                placeholder="Type GSTIN or PAN…",
-                key="search_val_pur",
-                label_visibility="collapsed"
-            )
+            pur_search_val = st.text_input("Books search value", placeholder="Type GSTIN or PAN…", key="search_val_pur", label_visibility="collapsed")
 
     # ── Check if any panel has input ─────────────────────────
     twoB_has_input  = bool(twoB_status) or (twoB_search_by != "— None —" and twoB_search_val.strip())
@@ -340,7 +307,6 @@ if st.session_state["result_df"] is not None:
                     m &= work["_PAN_PUR"].str.contains(q, regex=False)
             masks.append(m)
 
-        # Union of both panels' masks
         combined = masks[0]
         for m in masks[1:]:
             combined = combined | m
@@ -350,148 +316,163 @@ if st.session_state["result_df"] is not None:
         
         st.markdown("#### ✨ Filtered Results")
         st.dataframe(display_df, use_container_width=True, height=250)
+    else:
+        filtered = pd.DataFrame(columns=work.columns)
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 
     # ════════════════════════════════════════════════════════
-    #  MANUAL MATCH MAKER
+    #  MANUAL MATCH MAKER (Only displays based on search)
     # ════════════════════════════════════════════════════════
-    open_2b_rows    = result_df[result_df["Match_Status"] == MATCH_OPEN_2B]
-    open_books_rows = result_df[result_df["Match_Status"] == MATCH_OPEN_BOOKS]
+    st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("### 🤝 Manual Match Maker")
 
-    if not open_2b_rows.empty or not open_books_rows.empty:
-        st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
-        st.markdown("---")
-        st.markdown("### 🤝 Manual Match Maker")
-        st.markdown(
-            "<small style='color:#64748B;'>Tick <b>one row</b> on each side, then click "
-            "<b>✅ Confirm Match</b>.</small>",
-            unsafe_allow_html=True
-        )
+    if not any_input:
+        st.info("👆 Please use the **Filter & Search** fields above to populate the Manual Match Maker.")
+    else:
+        # Extract open rows strictly from the FILTERED data
+        open_2b_rows    = filtered[filtered["Match_Status"] == MATCH_OPEN_2B]
+        open_books_rows = filtered[filtered["Match_Status"] == MATCH_OPEN_BOOKS]
 
-        mm_left, mm_right = st.columns(2)
-        sel_2b_idx    = None
-        sel_books_idx = None
-
-        # ── 2B side ──────────────────────────────────────────
-        with mm_left:
-            st.markdown('<div class="side-header-2b animate-left">📘 Open in 2B</div>', unsafe_allow_html=True)
-
-            if open_2b_rows.empty:
-                st.info("No 'Open in 2B' rows.")
-            else:
-                for df_idx, row in open_2b_rows.iterrows():
-                    gstin = str(row.get("Supplier GSTIN",  "—"))
-                    doc   = str(row.get("Document Number", "—"))
-                    igst  = fmt_amt(row.get("IGST Amount_2B", 0))
-                    cgst  = fmt_amt(row.get("CGST Amount_2B", 0))
-                    sgst  = fmt_amt(row.get("SGST Amount_2B", 0))
-
-                    chk_col, info_col = st.columns([0.07, 0.93])
-                    with chk_col:
-                        checked = st.checkbox(
-                            "", key=f"chk_2b_{df_idx}",
-                            label_visibility="collapsed"
-                        )
-                    with info_col:
-                        st.markdown(
-                            f"<div class='mm-row-card' style='animation-delay: {df_idx * 0.05}s;'>"
-                            f"<b>GSTIN :</b> {gstin}<br>"
-                            f"<b>Doc No:</b> {doc}<br>"
-                            f"<b>IGST:</b> {igst} &nbsp;|&nbsp; "
-                            f"<b>CGST:</b> {cgst} &nbsp;|&nbsp; "
-                            f"<b>SGST:</b> {sgst}"
-                            f"</div>",
-                            unsafe_allow_html=True
-                        )
-                    if checked:
-                        sel_2b_idx = df_idx
-
-        # ── Books side ───────────────────────────────────────
-        with mm_right:
-            st.markdown('<div class="side-header-pur animate-right">📙 Open in Books</div>', unsafe_allow_html=True)
-
-            if open_books_rows.empty:
-                st.info("No 'Open in Books' rows.")
-            else:
-                for df_idx, row in open_books_rows.iterrows():
-                    gstin = str(row.get("Vendor/Customer GSTIN",   "—"))
-                    doc   = str(row.get("Reference Document No.", "—"))
-                    igst  = fmt_amt(row.get("IGST Amount_PUR", 0))
-                    cgst  = fmt_amt(row.get("CGST Amount_PUR", 0))
-                    sgst  = fmt_amt(row.get("SGST Amount_PUR", 0))
-
-                    chk_col, info_col = st.columns([0.07, 0.93])
-                    with chk_col:
-                        checked = st.checkbox(
-                            "", key=f"chk_bk_{df_idx}",
-                            label_visibility="collapsed"
-                        )
-                    with info_col:
-                        st.markdown(
-                            f"<div class='mm-row-card' style='animation-delay: {df_idx * 0.05}s; border-left-color: #F97316;'>"
-                            f"<b>GSTIN :</b> {gstin}<br>"
-                            f"<b>Doc No:</b> {doc}<br>"
-                            f"<b>IGST:</b> {igst} &nbsp;|&nbsp; "
-                            f"<b>CGST:</b> {cgst} &nbsp;|&nbsp; "
-                            f"<b>SGST:</b> {sgst}"
-                            f"</div>",
-                            unsafe_allow_html=True
-                        )
-                    if checked:
-                        sel_books_idx = df_idx
-
-        # ── Confirm button ────────────────────────────────────
-        st.markdown("<br>", unsafe_allow_html=True)
-        _, ok_col, _ = st.columns([1, 2, 1])
-        with ok_col:
-            confirm_btn = st.button(
-                "✅ Confirm Match", use_container_width=True, key="confirm_manual"
+        if open_2b_rows.empty and open_books_rows.empty:
+             st.success("No 'Open' records found in your current search results.")
+        else:
+            st.markdown(
+                "<small style='color:#64748B;'>Tick <b>one row</b> on each side, then click "
+                "<b>✅ Confirm Match</b>.</small>",
+                unsafe_allow_html=True
             )
 
-        if confirm_btn:
-            if sel_2b_idx is None or sel_books_idx is None:
-                st.warning("⚠️ Please select exactly one row from each side before confirming.")
-            else:
-                live_df = st.session_state["result_df"].copy()
+            mm_left, mm_right = st.columns(2)
+            sel_2b_idx    = None
+            sel_books_idx = None
 
-                # Copy purchase columns into 2B row
-                pur_copy_cols = [
-                    c for c in live_df.columns
-                    if c.endswith("_PUR") or c in [
-                        "Reference Document No.", "FI Document Number",
-                        "Vendor/Customer Name",  "Vendor/Customer GSTIN"
+            # ── 2B side ──────────────────────────────────────────
+            with mm_left:
+                st.markdown('<div class="side-header-2b animate-left">📘 Open in 2B</div>', unsafe_allow_html=True)
+
+                if open_2b_rows.empty:
+                    st.info("No 'Open in 2B' rows in filtered view.")
+                else:
+                    for df_idx, row in open_2b_rows.iterrows():
+                        gstin = str(row.get("Supplier GSTIN",  "—"))
+                        doc   = str(row.get("Document Number", "—"))
+                        igst  = fmt_amt(row.get("IGST Amount_2B", 0))
+                        cgst  = fmt_amt(row.get("CGST Amount_2B", 0))
+                        sgst  = fmt_amt(row.get("SGST Amount_2B", 0))
+
+                        chk_col, info_col = st.columns([0.07, 0.93])
+                        with chk_col:
+                            checked = st.checkbox("", key=f"chk_2b_{df_idx}", label_visibility="collapsed")
+                        with info_col:
+                            st.markdown(
+                                f"<div class='mm-row-card'>"
+                                f"<b>GSTIN :</b> {gstin}<br>"
+                                f"<b>Doc No:</b> {doc}<br>"
+                                f"<b>IGST:</b> {igst} &nbsp;|&nbsp; "
+                                f"<b>CGST:</b> {cgst} &nbsp;|&nbsp; "
+                                f"<b>SGST:</b> {sgst}"
+                                f"</div>",
+                                unsafe_allow_html=True
+                            )
+                        if checked:
+                            sel_2b_idx = df_idx
+
+            # ── Books side ───────────────────────────────────────
+            with mm_right:
+                st.markdown('<div class="side-header-pur animate-right">📙 Open in Books</div>', unsafe_allow_html=True)
+
+                if open_books_rows.empty:
+                    st.info("No 'Open in Books' rows in filtered view.")
+                else:
+                    for df_idx, row in open_books_rows.iterrows():
+                        gstin = str(row.get("Vendor/Customer GSTIN",   "—"))
+                        doc   = str(row.get("Reference Document No.", "—"))
+                        igst  = fmt_amt(row.get("IGST Amount_PUR", 0))
+                        cgst  = fmt_amt(row.get("CGST Amount_PUR", 0))
+                        sgst  = fmt_amt(row.get("SGST Amount_PUR", 0))
+
+                        chk_col, info_col = st.columns([0.07, 0.93])
+                        with chk_col:
+                            checked = st.checkbox("", key=f"chk_bk_{df_idx}", label_visibility="collapsed")
+                        with info_col:
+                            st.markdown(
+                                f"<div class='mm-row-card' style='border-left-color: #F97316;'>"
+                                f"<b>GSTIN :</b> {gstin}<br>"
+                                f"<b>Doc No:</b> {doc}<br>"
+                                f"<b>IGST:</b> {igst} &nbsp;|&nbsp; "
+                                f"<b>CGST:</b> {cgst} &nbsp;|&nbsp; "
+                                f"<b>SGST:</b> {sgst}"
+                                f"</div>",
+                                unsafe_allow_html=True
+                            )
+                        if checked:
+                            sel_books_idx = df_idx
+
+            # ── Confirm button ────────────────────────────────────
+            st.markdown("<br>", unsafe_allow_html=True)
+            _, ok_col, _ = st.columns([1, 2, 1])
+            with ok_col:
+                confirm_btn = st.button("✅ Confirm Match", use_container_width=True, key="confirm_manual")
+
+            if confirm_btn:
+                if sel_2b_idx is None or sel_books_idx is None:
+                    st.warning("⚠️ Please select exactly one row from each side before confirming.")
+                else:
+                    live_df = st.session_state["result_df"].copy()
+
+                    pur_copy_cols = [
+                        c for c in live_df.columns
+                        if c.endswith("_PUR") or c in [
+                            "Reference Document No.", "FI Document Number",
+                            "Vendor/Customer Name",  "Vendor/Customer GSTIN"
+                        ]
                     ]
-                ]
-                for col in pur_copy_cols:
-                    if col in live_df.columns:
-                        live_df.at[sel_2b_idx, col] = live_df.at[sel_books_idx, col]
+                    for col in pur_copy_cols:
+                        if col in live_df.columns:
+                            live_df.at[sel_2b_idx, col] = live_df.at[sel_books_idx, col]
 
-                # Recompute diffs
-                for tax in ["IGST", "CGST", "SGST"]:
-                    p_col = f"{tax} Amount_PUR"
-                    b_col = f"{tax} Amount_2B"
-                    d_col = f"{tax} Diff"
-                    if p_col in live_df.columns and b_col in live_df.columns:
-                        live_df.at[sel_2b_idx, d_col] = (
-                            pd.to_numeric(live_df.at[sel_2b_idx, p_col], errors="coerce") -
-                            pd.to_numeric(live_df.at[sel_2b_idx, b_col], errors="coerce")
-                        )
+                    for tax in ["IGST", "CGST", "SGST"]:
+                        p_col = f"{tax} Amount_PUR"
+                        b_col = f"{tax} Amount_2B"
+                        d_col = f"{tax} Diff"
+                        if p_col in live_df.columns and b_col in live_df.columns:
+                            live_df.at[sel_2b_idx, d_col] = (
+                                pd.to_numeric(live_df.at[sel_2b_idx, p_col], errors="coerce") -
+                                pd.to_numeric(live_df.at[sel_2b_idx, b_col], errors="coerce")
+                            )
 
-                live_df.at[sel_2b_idx,    "Match_Status"] = "Manual Match"
-                live_df.at[sel_books_idx, "Match_Status"] = "Manual Match (Consumed)"
+                    live_df.at[sel_2b_idx,    "Match_Status"] = "Manual Match"
+                    live_df.at[sel_books_idx, "Match_Status"] = "Manual Match (Consumed)"
 
-                st.session_state["result_df"] = live_df
-                st.session_state["manual_matches"].append((sel_2b_idx, sel_books_idx))
-                st.success("✅ Rows matched and marked as **Manual Match**!")
-                time.sleep(1) # Slight delay to show success message before refresh
-                st.rerun()
-                
-        st.markdown('</div>', unsafe_allow_html=True)
+                    st.session_state["result_df"] = live_df
+                    st.session_state["manual_matches"].append((sel_2b_idx, sel_books_idx))
+                    st.success("✅ Rows matched and marked as **Manual Match**!")
+                    time.sleep(1)
+                    st.rerun()
+                    
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- EXPORT SECTION ---
+    # ════════════════════════════════════════════════════════
+    #  DETAILED LEDGER & EXPORT (Moved to the very bottom)
+    # ════════════════════════════════════════════════════════
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
+    
+    st.markdown("### 📋 Detailed Reconciliation Ledger")
+    st.dataframe(
+        result_df.style.map(
+            lambda x: "background-color: #FFEDD5" if x in ["Mismatch", MATCH_OPEN_2B, MATCH_OPEN_BOOKS] 
+                      else ("background-color: #DCFCE7" if x == "Manual Match" else ""), 
+            subset=["Match_Status"]
+        ),
+        use_container_width=True, 
+        height=300
+    )
+    
+    st.markdown("<br>", unsafe_allow_html=True)
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         result_df.to_excel(writer, index=False)
