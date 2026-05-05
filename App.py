@@ -63,6 +63,11 @@ st.markdown("""
         50% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); transform: scale(1.02); }
         100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); transform: scale(1); }
     }
+    @keyframes pulseGreen {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); transform: scale(1); }
+        50% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); transform: scale(1.02); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); transform: scale(1); }
+    }
     @keyframes gradientBG {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
@@ -72,10 +77,16 @@ st.markdown("""
         0% { opacity: 0; transform: scale(0.9); }
         100% { opacity: 1; transform: scale(1); }
     }
+    @keyframes floatDrop {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
+        100% { transform: translateY(0px); }
+    }
 
     .animate-fade { animation: fadeIn 0.6s ease-out forwards; }
     .animate-left { animation: slideInLeft 0.6s ease-out forwards; }
     .animate-right { animation: slideInRight 0.6s ease-out forwards; }
+    .floating-anim { animation: floatDrop 3s ease-in-out infinite; }
 
     /* Hero Header */
     .hero-header {
@@ -97,12 +108,12 @@ st.markdown("""
         text-align: center; transition: transform 0.3s ease;
         animation: fadeIn 0.8s ease-out forwards;
     }
-    .kpi-card:hover { transform: translateY(-5px); }
+    .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
     .kpi-card.orange { border-bottom: 4px solid #F97316; }
     .kpi-value { font-size: 2.2rem; font-weight: 800; color: #0F172A; margin: 0.5rem 0; }
     .kpi-label { font-size: 0.9rem; color: #64748B; text-transform: uppercase; font-weight: 600; }
 
-    /* Modern Buttons */
+    /* Standard Action Buttons */
     .stButton>button {
         background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
         color: white; border: none; padding: 0.8rem 2rem; border-radius: 50px; 
@@ -113,6 +124,20 @@ st.markdown("""
         transform: translateY(-2px) scale(1.02);
         box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
         color: white; animation: none; 
+    }
+    
+    /* 📥 DOWNLOAD BUTTON OVERRIDE (Green Glowing Pulse) */
+    [data-testid="stDownloadButton"] button {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+        animation: pulseGreen 2.5s infinite !important;
+        width: 100%;
+        margin-top: 10px;
+    }
+    [data-testid="stDownloadButton"] button:hover {
+        transform: translateY(-2px) scale(1.03) !important;
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6) !important;
+        animation: none !important;
     }
 
     /* Filter & Search / Manual Match Maker Custom CSS */
@@ -137,10 +162,21 @@ st.markdown("""
     .mm-row-card:hover { transform: translateX(5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .mm-row-card b { color: #0F172A; }
     
+    /* Ledger Container Frame */
+    .ledger-container {
+        background: white; padding: 1.5rem; border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        border: 1px solid #E2E8F0;
+        margin-top: 20px;
+    }
+
+    /* Empty State */
     .empty-state {
         background: white; padding: 4rem 2rem; text-align: center;
         border-radius: 16px; border: 2px dashed #CBD5E1; color: #64748B; margin-top: 2rem;
+        transition: all 0.3s ease;
     }
+    .empty-state:hover { border-color: #3B82F6; background-color: #F8FAFC; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -148,7 +184,7 @@ st.markdown("""
 st.markdown("""
     <div class="hero-header">
         <h1 style='margin:0; font-size: 3rem; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>
-            ⚡ GST Intelligence Hub
+            <span class="floating-anim" style="display:inline-block;">⚡</span> GST Intelligence Hub
         </h1>
         <p style='margin:5px 0 0 0; font-size: 1.2rem; opacity: 0.9;'>Automated GSTR-2B vs Books Reconciliation</p>
     </div>
@@ -233,7 +269,7 @@ if st.session_state["result_df"] is not None:
     ordered_statuses = [s for s in ALL_STATUSES if s in present_statuses]
     ordered_statuses += [s for s in present_statuses if s not in ordered_statuses]
 
-    st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
+    st.markdown('<div class="animate-fade" style="animation-delay: 0.2s;">', unsafe_allow_html=True)
     st.markdown("### 🔍 Filter & Search")
     fs_left, fs_right = st.columns(2)
 
@@ -325,7 +361,7 @@ if st.session_state["result_df"] is not None:
     # ════════════════════════════════════════════════════════
     #  MANUAL MATCH MAKER (Only displays based on search)
     # ════════════════════════════════════════════════════════
-    st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
+    st.markdown('<div class="animate-fade" style="animation-delay: 0.3s;">', unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("### 🤝 Manual Match Maker")
 
@@ -337,7 +373,7 @@ if st.session_state["result_df"] is not None:
         open_books_rows = filtered[filtered["Match_Status"] == MATCH_OPEN_BOOKS]
 
         if open_2b_rows.empty and open_books_rows.empty:
-             st.success("No 'Open' records found in your current search results.")
+             st.success("✨ No 'Open' records found in your current search results.")
         else:
             st.markdown(
                 "<small style='color:#64748B;'>Tick <b>one row</b> on each side, then click "
@@ -456,12 +492,16 @@ if st.session_state["result_df"] is not None:
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════
-    #  DETAILED LEDGER & EXPORT (Moved to the very bottom)
+    #  DETAILED LEDGER & EXPORT (Animated Box Area)
     # ════════════════════════════════════════════════════════
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
+    st.markdown("<hr style='margin-top: 3rem;'>", unsafe_allow_html=True)
     
-    st.markdown("### 📋 Detailed Reconciliation Ledger")
+    st.markdown("""
+        <div class="ledger-container animate-fade" style="animation-delay: 0.5s;">
+            <h3 style="margin-top: 0;"><span class="floating-anim" style="display:inline-block;">📋</span> Master Reconciliation Ledger</h3>
+            <p style="color:#64748B; font-size: 0.9rem; margin-bottom: 1.5rem;">Below is the complete overview of all records, including system logic output and any manual matches you've processed.</p>
+    """, unsafe_allow_html=True)
+    
     st.dataframe(
         result_df.style.map(
             lambda x: "background-color: #FFEDD5" if x in ["Mismatch", MATCH_OPEN_2B, MATCH_OPEN_BOOKS] 
@@ -469,7 +509,7 @@ if st.session_state["result_df"] is not None:
             subset=["Match_Status"]
         ),
         use_container_width=True, 
-        height=300
+        height=350
     )
     
     st.markdown("<br>", unsafe_allow_html=True)
@@ -486,12 +526,13 @@ if st.session_state["result_df"] is not None:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True) # Closes ledger-container
 
 elif not gst_file or not pur_file:
     st.markdown("""
         <div class="empty-state animate-fade">
-            <h2 style="margin-bottom: 10px;">Awaiting Data Injection 🚀</h2>
+            <div class="floating-anim" style="font-size: 3rem; margin-bottom: 10px;">🚀</div>
+            <h2 style="margin-bottom: 10px;">Awaiting Data Injection</h2>
             <p>Upload your <b>GSTR-2B</b> and <b>Purchase Register</b> files above to trigger the reconciliation engine.</p>
         </div>
     """, unsafe_allow_html=True)
