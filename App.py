@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
+import time
 import reconciliation_logic as reco_logic
 
 # ---------------- PAGE CONFIG ----------------
@@ -35,12 +36,21 @@ st.markdown("""
         100% { transform: translateY(0px); }
     }
 
+    /* Animated Gradient Background for Hero */
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
     .animate-fade { animation: fadeIn 0.6s ease-out forwards; }
     .floating-icon { display: inline-block; animation: floatIcon 3s ease-in-out infinite; }
 
     /* Hero Header */
     .hero-header {
-        background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #F97316 100%);
+        background: linear-gradient(-45deg, #0F172A, #1E3A8A, #F97316, #EA580C);
+        background-size: 400% 400%;
+        animation: gradientBG 8s ease infinite, fadeIn 0.6s ease-out forwards;
         padding: 2.5rem 2rem;
         border-radius: 16px;
         color: white;
@@ -84,13 +94,13 @@ st.markdown("""
         font-size: 1.1rem;
         letter-spacing: 0.5px;
         transition: all 0.3s ease;
-        animation: pulseButton 2s infinite; /* Added Pulse Animation */
+        animation: pulseButton 2s infinite; 
     }
     .stButton>button:hover {
         transform: translateY(-2px) scale(1.02);
         box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
         color: white;
-        animation: none; /* Stop pulsing on hover */
+        animation: none; 
     }
     
     /* Empty State */
@@ -108,7 +118,7 @@ st.markdown("""
 
 # ---------------- HEADER SECTION ----------------
 st.markdown("""
-    <div class="hero-header animate-fade">
+    <div class="hero-header">
         <h1 style='margin:0; font-size: 3rem; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>
             <span class="floating-icon">⚡</span> GST Intelligence Hub
         </h1>
@@ -142,10 +152,20 @@ if gst_file and pur_file:
             run_btn = st.button("🚀 INITIATE PROCESS", use_container_width=True)
 
         if run_btn:
-            with st.spinner("🧠 Please Wait!..."):
+            # --- DYNAMIC PROCESSING ANIMATION ---
+            with st.status("⚡ Initiating Intelligence Engine...", expanded=True) as status:
+                st.write("📥 Ingesting GSTR-2B and Purchase Data...")
+                time.sleep(0.5)  # Visual pause for effect
+                
+                st.write("🔍 Running Fuzzy Logic & Exact Match Algorithms...")
+                # The actual heavy lifting
                 result_df = reco_logic.process_reco(df_2b, df_books)
+                
+                st.write("📊 Finalizing Discrepancy Analytics...")
+                time.sleep(0.5)  # Visual pause for effect
+                
+                status.update(label="✅ Reconciliation Complete!", state="complete", expanded=False)
             
-            # --- ADDED SUCCESS ANIMATION ---
             st.balloons() 
 
             st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
@@ -153,15 +173,9 @@ if gst_file and pur_file:
             # --- CALCULATE METRICS ---
             total = len(result_df)
 
-            # 1. Find everything that has "Match"
             is_match = result_df["Match_Status"].str.contains("Match", case=False, na=False)
-            
-            # 2. Find everything that has "Fuzzy"
             is_fuzzy = result_df["Match_Status"].str.contains("Fuzzy", case=False, na=False)
-            
-            # 3. Combine: Count where it IS a match, AND is NOT fuzzy
             matched = (is_match & ~is_fuzzy).sum()
-            
             unmatched = total - matched
 
             # --- CUSTOM KPI CARDS ---
@@ -179,14 +193,12 @@ if gst_file and pur_file:
                         <div class="kpi-label">Discrepancies</div>
                         <div class="kpi-value" style="color: #F97316;">{unmatched:,}</div>
                     </div>
-                    
                 </div>
             """, unsafe_allow_html=True)
 
             # --- DETAILED LEDGER (Direct View) ---
             st.markdown("### 📋 Detailed ")
             
-            # FIXED: Changed applymap() to map() for modern Pandas compatibility
             st.dataframe(
                 result_df.style.map(
                     lambda x: "background-color: #FFEDD5" if x == "Mismatch" else "", 
