@@ -22,7 +22,21 @@ st.markdown("""
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
+    
+    @keyframes pulseButton {
+        0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); transform: scale(1); }
+        50% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); transform: scale(1.02); }
+        100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); transform: scale(1); }
+    }
+
+    @keyframes floatIcon {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+    }
+
     .animate-fade { animation: fadeIn 0.6s ease-out forwards; }
+    .floating-icon { display: inline-block; animation: floatIcon 3s ease-in-out infinite; }
 
     /* Hero Header */
     .hero-header {
@@ -52,6 +66,7 @@ st.markdown("""
         border-bottom: 4px solid #3B82F6;
         text-align: center;
         transition: transform 0.3s ease;
+        animation: fadeIn 0.8s ease-out forwards;
     }
     .kpi-card:hover { transform: translateY(-5px); }
     .kpi-card.orange { border-bottom: 4px solid #F97316; }
@@ -69,12 +84,13 @@ st.markdown("""
         font-size: 1.1rem;
         letter-spacing: 0.5px;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+        animation: pulseButton 2s infinite; /* Added Pulse Animation */
     }
     .stButton>button:hover {
         transform: translateY(-2px) scale(1.02);
         box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
         color: white;
+        animation: none; /* Stop pulsing on hover */
     }
     
     /* Empty State */
@@ -93,7 +109,9 @@ st.markdown("""
 # ---------------- HEADER SECTION ----------------
 st.markdown("""
     <div class="hero-header animate-fade">
-        <h1 style='margin:0; font-size: 3rem; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>⚡ GST Intelligence Hub</h1>
+        <h1 style='margin:0; font-size: 3rem; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>
+            <span class="floating-icon">⚡</span> GST Intelligence Hub
+        </h1>
         <p style='margin:5px 0 0 0; font-size: 1.2rem; opacity: 0.9;'>Automated GSTR-2B vs Books Reconciliation</p>
     </div>
 """, unsafe_allow_html=True)
@@ -126,6 +144,9 @@ if gst_file and pur_file:
         if run_btn:
             with st.spinner("🧠 Please Wait!..."):
                 result_df = reco_logic.process_reco(df_2b, df_books)
+            
+            # --- ADDED SUCCESS ANIMATION ---
+            st.balloons() 
 
             st.markdown('<div class="animate-fade">', unsafe_allow_html=True)
             
@@ -146,15 +167,15 @@ if gst_file and pur_file:
             # --- CUSTOM KPI CARDS ---
             st.markdown(f"""
                 <div class="kpi-container">
-                    <div class="kpi-card">
+                    <div class="kpi-card" style="animation-delay: 0.1s;">
                         <div class="kpi-label">Total Invoices Processed</div>
                         <div class="kpi-value">{total:,}</div>
                     </div>
-                    <div class="kpi-card" style="border-bottom-color: #10B981;">
+                    <div class="kpi-card" style="border-bottom-color: #10B981; animation-delay: 0.3s;">
                         <div class="kpi-label">Perfect Matches</div>
                         <div class="kpi-value" style="color: #10B981;">{matched:,}</div>
                     </div>
-                    <div class="kpi-card orange">
+                    <div class="kpi-card orange" style="animation-delay: 0.5s;">
                         <div class="kpi-label">Discrepancies</div>
                         <div class="kpi-value" style="color: #F97316;">{unmatched:,}</div>
                     </div>
@@ -197,7 +218,7 @@ if gst_file and pur_file:
 else:
     st.markdown("""
         <div class="empty-state animate-fade">
-            <h2 style="margin-bottom: 10px;">Awaiting Data Injection 🚀</h2>
+            <h2 style="margin-bottom: 10px;"><span class="floating-icon">🚀</span> Awaiting Data Injection</h2>
             <p>Upload your <b>GSTR-2B</b> and <b>Purchase Register</b> files above to trigger the reconciliation engine.</p>
         </div>
     """, unsafe_allow_html=True)
