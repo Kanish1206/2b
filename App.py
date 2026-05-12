@@ -77,16 +77,10 @@ st.markdown("""
         0% { opacity: 0; transform: scale(0.9); }
         100% { opacity: 1; transform: scale(1); }
     }
-    @keyframes floatDrop {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-8px); }
-        100% { transform: translateY(0px); }
-    }
 
     .animate-fade { animation: fadeIn 0.6s ease-out forwards; }
     .animate-left { animation: slideInLeft 0.6s ease-out forwards; }
     .animate-right { animation: slideInRight 0.6s ease-out forwards; }
-    .floating-anim { animation: floatDrop 3s ease-in-out infinite; }
 
     /* Hero Header */
     .hero-header {
@@ -113,42 +107,36 @@ st.markdown("""
     .kpi-value { font-size: 2.2rem; font-weight: 800; color: #0F172A; margin: 0.5rem 0; }
     .kpi-label { font-size: 0.9rem; color: #64748B; text-transform: uppercase; font-weight: 600; }
 
-    /* Standard Action Buttons */
-    .stButton>button {
+    /* --- BUTTON STYLING --- */
+    /* Primary Action Buttons (Orange Pulse) */
+    button[kind="primary"] {
         background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
         color: white; border: none; padding: 0.8rem 2rem; border-radius: 50px; 
         font-weight: bold; font-size: 1.1rem; transition: all 0.3s ease;
         animation: pulseButton 2s infinite; 
     }
-    .stButton>button:hover {
+    button[kind="primary"]:hover {
         transform: translateY(-2px) scale(1.02);
         box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
         color: white; animation: none; 
     }
     
-    /* UNDO BUTTON SPECIFIC STYLE */
-    button[disabled] {
-        background: #CBD5E1 !important;
-        box-shadow: none !important;
-        animation: none !important;
-        cursor: not-allowed;
+    /* Secondary Action Buttons (Undo List) */
+    button[kind="secondary"] {
+        background: white; color: #475569; border: 1px solid #CBD5E1;
+        border-radius: 8px; font-weight: 600; transition: all 0.2s ease;
     }
-    div:nth-child(2) > div > button { 
-        /* Targeting the second button column for Undo */
-        background: linear-gradient(135deg, #64748B 0%, #475569 100%);
-        animation: none;
-    }
-    div:nth-child(2) > div > button:hover:not([disabled]) {
-        box-shadow: 0 6px 20px rgba(100, 116, 139, 0.5);
+    button[kind="secondary"]:hover {
+        background: #F1F5F9; color: #0F172A; transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: #94A3B8;
     }
     
-    /* 📥 DOWNLOAD BUTTON OVERRIDE (Green Glowing Pulse) */
+    /* Download Button (Green Glowing Pulse) */
     [data-testid="stDownloadButton"] button {
         background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
         box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
         animation: pulseGreen 2.5s infinite !important;
-        width: 100%;
-        margin-top: 10px;
+        width: 100%; margin-top: 10px; color: white !important;
     }
     [data-testid="stDownloadButton"] button:hover {
         transform: translateY(-2px) scale(1.03) !important;
@@ -178,12 +166,18 @@ st.markdown("""
     .mm-row-card:hover { transform: translateX(5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .mm-row-card b { color: #0F172A; }
     
+    /* History List Card */
+    .history-card {
+        background: white; padding: 10px 15px; border-radius: 8px;
+        border-left: 4px solid #3B82F6; font-size: 0.9rem; color: #1E293B;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03); margin-bottom: 10px;
+    }
+    
     /* Ledger Container Frame */
     .ledger-container {
         background: white; padding: 1.5rem; border-radius: 12px;
         box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-        border: 1px solid #E2E8F0;
-        margin-top: 20px;
+        border: 1px solid #E2E8F0; margin-top: 20px;
     }
 
     /* Empty State */
@@ -200,7 +194,7 @@ st.markdown("""
 st.markdown("""
     <div class="hero-header">
         <h1 style='margin:0; font-size: 3rem; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);'>
-            <span class="floating-anim" style="display:inline-block;">⚡</span> GST Intelligence Hub
+            ⚡ GST Intelligence Hub
         </h1>
         <p style='margin:5px 0 0 0; font-size: 1.2rem; opacity: 0.9;'>Automated GSTR-2B vs Books Reconciliation</p>
     </div>
@@ -222,7 +216,7 @@ if gst_file and pur_file:
     if st.session_state["result_df"] is None:
         _, btn_col, _ = st.columns([1, 2, 1])
         with btn_col:
-            run_btn = st.button("🚀 INITIATE PROCESS", use_container_width=True)
+            run_btn = st.button("🚀 INITIATE PROCESS", type="primary", use_container_width=True)
 
         if run_btn:
             with st.status("⚡ Initiating Intelligence Engine...", expanded=True) as status:
@@ -375,7 +369,7 @@ if st.session_state["result_df"] is not None:
 
 
     # ════════════════════════════════════════════════════════
-    #  MANUAL MATCH MAKER (Only displays based on search)
+    #  MANUAL MATCH MAKER 
     # ════════════════════════════════════════════════════════
     st.markdown('<div class="animate-fade" style="animation-delay: 0.3s;">', unsafe_allow_html=True)
     st.markdown("---")
@@ -463,36 +457,11 @@ if st.session_state["result_df"] is not None:
                         if checked:
                             sel_books_idx = df_idx
 
-            # ── Confirm & Undo buttons ────────────────────────────────────
+            # ── Confirm Match button ────────────────────────────────────
             st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Split into two columns for Confirm and Undo
-            _, btn_col1, btn_col2, _ = st.columns([1, 1.5, 1.5, 1])
-            
-            with btn_col1:
-                confirm_btn = st.button("✅ Confirm Match", use_container_width=True, key="confirm_manual")
-                
-            with btn_col2:
-                # Check if there's anything to undo
-                num_matches = len(st.session_state["manual_matches"])
-                undo_btn = st.button(f"⏪ Undo Last Match ({num_matches})", 
-                                     use_container_width=True, 
-                                     disabled=(num_matches == 0))
-
-            # --- UNDO LOGIC ---
-            if undo_btn:
-                # Pop the last saved state
-                last_match = st.session_state["manual_matches"].pop()
-                live_df = st.session_state["result_df"].copy()
-                
-                # Restore the rows to exactly how they were before the match
-                live_df.loc[last_match["idx_2b"]] = last_match["old_row_2b"]
-                live_df.loc[last_match["idx_books"]] = last_match["old_row_books"]
-                
-                st.session_state["result_df"] = live_df
-                st.success("⏪ Last manual match was successfully undone!")
-                time.sleep(1)
-                st.rerun()
+            _, ok_col, _ = st.columns([1, 1.5, 1])
+            with ok_col:
+                confirm_btn = st.button("✅ Confirm Match", type="primary", use_container_width=True, key="confirm_manual")
 
             # --- CONFIRM LOGIC ---
             if confirm_btn:
@@ -501,7 +470,7 @@ if st.session_state["result_df"] is not None:
                 else:
                     live_df = st.session_state["result_df"].copy()
 
-                    # 1️⃣ CAPTURE SNAPSHOT BEFORE MODIFYING (For Undo)
+                    # 1️⃣ CAPTURE SNAPSHOT BEFORE MODIFYING (For Undo capability later)
                     old_row_2b = live_df.loc[sel_2b_idx].copy()
                     old_row_books = live_df.loc[sel_books_idx].copy()
 
@@ -535,7 +504,6 @@ if st.session_state["result_df"] is not None:
                     # 5️⃣ SAVE TO SESSION STATE
                     st.session_state["result_df"] = live_df
                     
-                    # Store as a dictionary so we know exactly what to revert
                     st.session_state["manual_matches"].append({
                         "idx_2b": sel_2b_idx,
                         "old_row_2b": old_row_2b,
@@ -543,11 +511,58 @@ if st.session_state["result_df"] is not None:
                         "old_row_books": old_row_books
                     })
                     
-                    st.success("✅ Rows matched and marked as **Manual Match**!")
+                    st.success("✅ Rows matched successfully!")
                     time.sleep(1)
                     st.rerun()
                     
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════
+    #  MANUAL MATCHES HISTORY (THE UNDO LIST)
+    # ════════════════════════════════════════════════════════
+    if st.session_state["manual_matches"]:
+        st.markdown('<div class="animate-fade" style="animation-delay: 0.4s;">', unsafe_allow_html=True)
+        st.markdown("<hr style='margin-top: 1rem; border-color: #CBD5E1;'>", unsafe_allow_html=True)
+        st.markdown("### ⏪ Manual Matches History")
+        st.markdown("<p style='color:#64748B; margin-bottom: 15px; font-size: 0.9rem;'>Review your manual matches below. Click <b>Undo</b> on any specific row to revert those records back to an 'Open' state.</p>", unsafe_allow_html=True)
+        
+        # We use reversed() so the most recent matches show at the top
+        for i, match_data in enumerate(reversed(st.session_state["manual_matches"])):
+            # Calculate the actual index in the list so we can pop it correctly
+            actual_idx = len(st.session_state["manual_matches"]) - 1 - i
+            
+            o_2b = match_data["old_row_2b"]
+            o_bk = match_data["old_row_books"]
+            
+            doc_2b = o_2b.get("Document Number", "—")
+            doc_bk = o_bk.get("Reference Document No.", "—")
+            gst_2b = o_2b.get("Supplier GSTIN", "—")
+            gst_bk = o_bk.get("Vendor/Customer GSTIN", "—")
+            
+            # Using Streamlit columns for layout
+            col1, col2, col3 = st.columns([3, 3, 1])
+            
+            with col1:
+                st.markdown(f"<div class='history-card'><b>2B GSTIN:</b> {gst_2b} <br> 📄 {doc_2b}</div>", unsafe_allow_html=True)
+            with col2:
+                st.markdown(f"<div class='history-card' style='border-left-color:#F97316;'><b>Books GSTIN:</b> {gst_bk} <br> 📄 {doc_bk}</div>", unsafe_allow_html=True)
+            with col3:
+                # Spacer to push the button down slightly to align with the text cards
+                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                if st.button("⏪ Undo", type="secondary", key=f"undo_{actual_idx}", use_container_width=True):
+                    # --- RESTORE LOGIC ---
+                    live_df = st.session_state["result_df"].copy()
+                    live_df.loc[match_data["idx_2b"]] = match_data["old_row_2b"]
+                    live_df.loc[match_data["idx_books"]] = match_data["old_row_books"]
+                    
+                    st.session_state["result_df"] = live_df
+                    st.session_state["manual_matches"].pop(actual_idx)
+                    
+                    st.success(f"✅ Match undone! Documents {doc_2b} & {doc_bk} are Open again.")
+                    time.sleep(0.8)
+                    st.rerun()
+                    
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════
     #  DETAILED LEDGER & EXPORT (Animated Box Area)
@@ -556,7 +571,7 @@ if st.session_state["result_df"] is not None:
     
     st.markdown("""
         <div class="ledger-container animate-fade" style="animation-delay: 0.5s;">
-            <h3 style="margin-top: 0;"><span class="floating-anim" style="display:inline-block;">📋</span> Master Reconciliation Ledger</h3>
+            <h3 style="margin-top: 0;">📋 Master Reconciliation Ledger</h3>
             <p style="color:#64748B; font-size: 0.9rem; margin-bottom: 1.5rem;">Below is the complete overview of all records, including system logic output and any manual matches you've processed.</p>
     """, unsafe_allow_html=True)
     
@@ -589,7 +604,7 @@ if st.session_state["result_df"] is not None:
 elif not gst_file or not pur_file:
     st.markdown("""
         <div class="empty-state animate-fade">
-            <div class="floating-anim" style="font-size: 3rem; margin-bottom: 10px;">🚀</div>
+            <div style="font-size: 3rem; margin-bottom: 10px;">🚀</div>
             <h2 style="margin-bottom: 10px;">Awaiting Data Injection</h2>
             <p>Upload your <b>GSTR-2B</b> and <b>Purchase Register</b> files above to trigger the reconciliation engine.</p>
         </div>
