@@ -126,6 +126,22 @@ st.markdown("""
         color: white; animation: none; 
     }
     
+    /* UNDO BUTTON SPECIFIC STYLE */
+    button[disabled] {
+        background: #CBD5E1 !important;
+        box-shadow: none !important;
+        animation: none !important;
+        cursor: not-allowed;
+    }
+    div:nth-child(2) > div > button { 
+        /* Targeting the second button column for Undo */
+        background: linear-gradient(135deg, #64748B 0%, #475569 100%);
+        animation: none;
+    }
+    div:nth-child(2) > div > button:hover:not([disabled]) {
+        box-shadow: 0 6px 20px rgba(100, 116, 139, 0.5);
+    }
+    
     /* 📥 DOWNLOAD BUTTON OVERRIDE (Green Glowing Pulse) */
     [data-testid="stDownloadButton"] button {
         background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
@@ -447,18 +463,49 @@ if st.session_state["result_df"] is not None:
                         if checked:
                             sel_books_idx = df_idx
 
-            # ── Confirm button ────────────────────────────────────
+            # ── Confirm & Undo buttons ────────────────────────────────────
             st.markdown("<br>", unsafe_allow_html=True)
-            _, ok_col, _ = st.columns([1, 2, 1])
-            with ok_col:
+            
+            # Split into two columns for Confirm and Undo
+            _, btn_col1, btn_col2, _ = st.columns([1, 1.5, 1.5, 1])
+            
+            with btn_col1:
                 confirm_btn = st.button("✅ Confirm Match", use_container_width=True, key="confirm_manual")
+                
+            with btn_col2:
+                # Check if there's anything to undo
+                num_matches = len(st.session_state["manual_matches"])
+                undo_btn = st.button(f"⏪ Undo Last Match ({num_matches})", 
+                                     use_container_width=True, 
+                                     disabled=(num_matches == 0))
 
+            # --- UNDO LOGIC ---
+            if undo_btn:
+                # Pop the last saved state
+                last_match = st.session_state["manual_matches"].pop()
+                live_df = st.session_state["result_df"].copy()
+                
+                # Restore the rows to exactly how they were before the match
+                live_df.loc[last_match["idx_2b"]] = last_match["old_row_2b"]
+                live_df.loc[last_match["idx_books"]] = last_match["old_row_books"]
+                
+                st.session_state["result_df"] = live_df
+                st.success("⏪ Last manual match was successfully undone!")
+                time.sleep(1)
+                st.rerun()
+
+            # --- CONFIRM LOGIC ---
             if confirm_btn:
                 if sel_2b_idx is None or sel_books_idx is None:
                     st.warning("⚠️ Please select exactly one row from each side before confirming.")
                 else:
                     live_df = st.session_state["result_df"].copy()
 
+                    # 1️⃣ CAPTURE SNAPSHOT BEFORE MODIFYING (For Undo)
+                    old_row_2b = live_df.loc[sel_2b_idx].copy()
+                    old_row_books = live_df.loc[sel_books_idx].copy()
+
+                    # 2️⃣ COPY PURCHASE DATA
                     pur_copy_cols = [
                         c for c in live_df.columns
                         if c.endswith("_PUR") or c in [
@@ -470,6 +517,7 @@ if st.session_state["result_df"] is not None:
                         if col in live_df.columns:
                             live_df.at[sel_2b_idx, col] = live_df.at[sel_books_idx, col]
 
+                    # 3️⃣ RECALCULATE TAX DIFFS
                     for tax in ["IGST", "CGST", "SGST"]:
                         p_col = f"{tax} Amount_PUR"
                         b_col = f"{tax} Amount_2B"
@@ -480,11 +528,21 @@ if st.session_state["result_df"] is not None:
                                 pd.to_numeric(live_df.at[sel_2b_idx, b_col], errors="coerce")
                             )
 
+                    # 4️⃣ UPDATE STATUS
                     live_df.at[sel_2b_idx,    "Match_Status"] = "Manual Match"
                     live_df.at[sel_books_idx, "Match_Status"] = "Manual Match (Consumed)"
 
+                    # 5️⃣ SAVE TO SESSION STATE
                     st.session_state["result_df"] = live_df
-                    st.session_state["manual_matches"].append((sel_2b_idx, sel_books_idx))
+                    
+                    # Store as a dictionary so we know exactly what to revert
+                    st.session_state["manual_matches"].append({
+                        "idx_2b": sel_2b_idx,
+                        "old_row_2b": old_row_2b,
+                        "idx_books": sel_books_idx,
+                        "old_row_books": old_row_books
+                    })
+                    
                     st.success("✅ Rows matched and marked as **Manual Match**!")
                     time.sleep(1)
                     st.rerun()
