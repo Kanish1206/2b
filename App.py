@@ -538,12 +538,7 @@ if st.session_state["result_df"] is not None:
             doc_bk = o_bk.get("Reference Document No.", "—")
             gst_2b = o_2b.get("Supplier GSTIN", "—")
             gst_bk = o_bk.get("Vendor/Customer GSTIN", "—")
-            gst_bk = o_bk.get("IGST", "—")
-            gst_bk = o_bk.get("CGST", "—")
-            gst_bk = o_bk.get("SGST", "—")
-            gst_2b = o_2b.get("IGST", "—")
-            gst_2b = o_2b.get("CGST", "—")
-            gst_2b = o_2b.get("SGST", "—")
+            
             
             # Using Streamlit columns for layout
             col1, col2, col3 = st.columns([3, 3, 1])
