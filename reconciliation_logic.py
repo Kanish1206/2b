@@ -75,7 +75,7 @@ def process_reco(
     # ---------------- VALIDATION ----------------
     gst_required = [
         "Supplier GSTIN", "Document Number", "Document Date",
-         "Taxable Value", "Supplier Name",
+         "Taxable Value", "Supplier Name","Remark 2B",
         "IGST Amount", "CGST Amount", "SGST Amount", "Invoice Value"
         
     ] #,"Document Type""Return Period",
@@ -105,6 +105,7 @@ def process_reco(
         "Document Number": "first",
         "Supplier Name": "first",
         "Document Date": "first",
+        "Remark 2B":"first",
         "IGST Amount": "sum",
         "CGST Amount": "sum",
         "SGST Amount": "sum",
