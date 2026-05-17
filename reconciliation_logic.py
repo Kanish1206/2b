@@ -435,6 +435,7 @@ def process_reco(
        "Return Period",
        "Supplier Name",
        "Document Date_2B",
+        "Remark 2B",
        "IGST Amount_2B",
        "CGST Amount_2B",
        "SGST Amount_2B",
