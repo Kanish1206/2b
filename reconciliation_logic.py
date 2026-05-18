@@ -92,6 +92,12 @@ def process_reco(
     # ---------------- PREP ----------------
     pur["Vendor/Customer GSTIN"] = pur["GSTIN Of Vendor/Customer"]
     #gst["Return Period"] = gst["Return Period"].astype(str)
+    gst["Return Period"] = (
+        gst["Return Period"]
+        .astype(str)
+        .str.replace(r'\.0$', '', regex=True)
+        .str.zfill(6)
+    )
 
     gst["doc_norm"] = normalize_doc(gst["Document Number"])
     pur["doc_norm"] = normalize_doc(pur["Reference Document No."])
