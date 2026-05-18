@@ -75,16 +75,16 @@ def process_reco(
     # ---------------- VALIDATION ----------------
     gst_required = [
         "Supplier GSTIN", "Document Number", "Document Date",
-         "Taxable Value", "Supplier Name","Document Type""Return Period",
-        "IGST Amount", "CGST Amount", "SGST Amount", "Invoice Value"
+        "Return Period", "Taxable Value", "Supplier Name",
+        "IGST Amount", "CGST Amount", "SGST Amount", "Invoice Value","Document Type"
         
-    ] #,
+    ] #
     pur_required = [
         "GSTIN Of Vendor/Customer", "Reference Document No.",
         "Taxable Amount", "Document Date",
         "Vendor/Customer Name", "IGST Amount", "CGST Amount",
-        "SGST Amount", "Invoice Value","Invoice Type"
-    ] # 
+        "SGST Amount", "Invoice Value", "Invoice Type"
+    ] #
 
     validate_columns(gst, gst_required, "2B File")
     validate_columns(pur, pur_required, "Purchase File")
@@ -103,17 +103,17 @@ def process_reco(
         ["Supplier GSTIN", "doc_norm","Document Type"], as_index=False 
     ).agg({
         "Document Number": "first",
+        "Return Period": "first",
         "Supplier Name": "first",
         "Document Date": "first",
-        "Return Period": "first",
         "IGST Amount": "sum",
         "CGST Amount": "sum",
         "SGST Amount": "sum",
         "Taxable Value": "sum",
         "Invoice Value": "sum",
-    }) #,
+    }) #
     pur_agg = pur.groupby(
-        ["Supplier GSTIN", "doc_norm","Document Type"], as_index=False
+        ["Supplier GSTIN", "doc_norm", "Document Type"], as_index=False
     ).agg({
         "Reference Document No.": "first",
         "Vendor/Customer GSTIN": "first",
@@ -125,16 +125,16 @@ def process_reco(
         "CGST Amount": "sum",
         "SGST Amount": "sum",
         "Invoice Value": "sum",
-    }) #, 
+    }) #
 
     # ---------------- MERGE ----------------
     merged = gst_agg.merge(
         pur_agg,
-        on=["Supplier GSTIN", "doc_norm","Document Type"],
+        on=["Supplier GSTIN", "doc_norm", "Document Type"],
         how="outer",
         suffixes=["_2B", "_PUR"],
         indicator=True,
-    ) #, 
+    ) #
 
     # ---------------- NUMERIC CLEAN ----------------
     numeric_cols = [
