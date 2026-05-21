@@ -252,7 +252,7 @@ if gst_file and pur_file:
                 df_2b.columns = df_2b.columns.str.strip()
                 df_books.columns = df_books.columns.str.strip()
                 
-                st.write("🔍 Running Fuzzy Logic & Exact Match Algorithms...")
+                st.write("🔍 Crunching the latest data, just for you. Hang tight…")
                 
                 # Using the parameters from the frontend
                 result_df = reco_logic.process_reco(
