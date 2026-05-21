@@ -226,10 +226,10 @@ with param_col1:
 with param_col2:
     doc_thresh = st.slider(
         "Fuzzy Match Threshold (%)", 
-        min_value=0, 
+        min_value=50, 
         max_value=100, 
         value=60, 
-        step=1, 
+        step=5, 
         help="Minimum string similarity score required for matching document numbers."
     )
 
