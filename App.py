@@ -211,6 +211,30 @@ with col2:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# ---------------- RECONCILIATION PARAMETERS ----------------
+st.markdown("#### ⚙️ Reconciliation Parameters")
+param_col1, param_col2 = st.columns(2)
+with param_col1:
+    tax_tol = st.number_input(
+        "Tax Tolerance (₹)", 
+        min_value=0.0, 
+        max_value=1000.0, 
+        value=10.0, 
+        step=1.0, 
+        help="Maximum allowed absolute difference in IGST/CGST/SGST amounts."
+    )
+with param_col2:
+    doc_thresh = st.slider(
+        "Fuzzy Match Threshold (%)", 
+        min_value=0, 
+        max_value=100, 
+        value=60, 
+        step=1, 
+        help="Minimum string similarity score required for matching document numbers."
+    )
+
+st.markdown("<br>", unsafe_allow_html=True)
+
 # ---------------- PROCESS TRIGGER ----------------
 if gst_file and pur_file:
     if st.session_state["result_df"] is None:
@@ -229,7 +253,14 @@ if gst_file and pur_file:
                 df_books.columns = df_books.columns.str.strip()
                 
                 st.write("🔍 Running Fuzzy Logic & Exact Match Algorithms...")
-                result_df = reco_logic.process_reco(df_2b, df_books)
+                
+                # Using the parameters from the frontend
+                result_df = reco_logic.process_reco(
+                    df_2b, 
+                    df_books, 
+                    doc_threshold=doc_thresh, 
+                    tax_tolerance=tax_tol
+                )
                 
                 st.write("📊 Finalizing Discrepancy Analytics...")
                 time.sleep(0.5)
