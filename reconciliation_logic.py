@@ -56,7 +56,7 @@ def process_reco(
     gst_df,
     pur_df,
     doc_threshold=60,
-    tax_tolerance=10,
+    tax_tolerance=100,
     gstin_mismatch_tolerance=5,
 ):
 
